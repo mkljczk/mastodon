@@ -835,9 +835,6 @@
         "id": "account.show_reblogs"
       },
       {
-<<<<<<< HEAD
-        "defaultMessage": "Pinned posts",
-=======
         "defaultMessage": "Notify me when @{name} posts",
         "id": "account.enable_notifications"
       },
@@ -846,8 +843,7 @@
         "id": "account.disable_notifications"
       },
       {
-        "defaultMessage": "Pinned toots",
->>>>>>> 633d175146d6acaf2cc4bfbfcfdee4c85ef20ed1
+        "defaultMessage": "Pinned Posts",
         "id": "navigation_bar.pins"
       },
       {
@@ -2498,9 +2494,6 @@
   {
     "descriptors": [
       {
-<<<<<<< HEAD
-        "defaultMessage": "Pinned post",
-=======
         "defaultMessage": "Reply",
         "id": "status.reply"
       },
@@ -2555,8 +2548,7 @@
   {
     "descriptors": [
       {
-        "defaultMessage": "Pinned toot",
->>>>>>> 633d175146d6acaf2cc4bfbfcfdee4c85ef20ed1
+        "defaultMessage": "Pinned post",
         "id": "column.pins"
       }
     ],

@@ -7217,7 +7217,6 @@ noscript {
   }
 }
 
-<<<<<<< HEAD
 .drawer__inner__mastodon svg#hometownlogo {
   box-sizing: border-box;
   fill: $secondary-text-color;
@@ -7233,7 +7232,9 @@ div.status__content--with-spoiler {
       display: block;
       margin: 0.25rem 0 0 0;
     }
-=======
+  }
+}
+
 .notification,
 .status__wrapper {
   position: relative;
@@ -7361,6 +7362,5 @@ div.status__content--with-spoiler {
     color: $darker-text-color;
     margin-bottom: 15px;
     text-align: center;
->>>>>>> 633d175146d6acaf2cc4bfbfcfdee4c85ef20ed1
   }
 }

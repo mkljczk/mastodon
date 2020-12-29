@@ -30,11 +30,6 @@ class FeedInsertWorker
   end
 
   def feed_filtered?
-<<<<<<< HEAD
-    # Note: Lists are a variation of home, so the filtering rules
-    # of home apply to both
-    FeedManager.instance.filter?(@type, @status, @follower.id)
-=======
     case @type
     when :home
       FeedManager.instance.filter?(:home, @status, @follower)
@@ -47,7 +42,6 @@ class FeedInsertWorker
     return false if @type != :home || @status.reblog? || (@status.reply? && @status.in_reply_to_account_id != @status.account_id)
 
     Follow.find_by(account: @follower, target_account: @status.account)&.notify?
->>>>>>> 633d175146d6acaf2cc4bfbfcfdee4c85ef20ed1
   end
 
   def perform_push
