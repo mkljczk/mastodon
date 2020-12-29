@@ -14,14 +14,6 @@ GIT
     posix-spawn (0.3.13)
 
 GIT
-  remote: https://github.com/tmm1/http_parser.rb
-  revision: 54b17ba8c7d8d20a16dfc65d1775241833219cf2
-  ref: 54b17ba8c7d8d20a16dfc65d1775241833219cf2
-  submodules: true
-  specs:
-    http_parser.rb (0.6.1)
-
-GIT
   remote: https://github.com/witgo/nilsimsa
   revision: fd184883048b922b176939f851338d0a4971a532
   ref: fd184883048b922b176939f851338d0a4971a532
@@ -250,11 +242,6 @@ GEM
       ruby-progressbar (~> 1.4)
     globalid (0.4.2)
       activesupport (>= 4.2.0)
-    goldfinger (2.1.1)
-      addressable (~> 2.5)
-      http (~> 4.0)
-      nokogiri (~> 1.8)
-      oj (~> 3.0)
     hamlit (2.11.0)
       temple (>= 0.8.2)
       thor
@@ -708,14 +695,12 @@ DEPENDENCIES
   fog-core (<= 2.1.0)
   fog-openstack (~> 0.3)
   fuubar (~> 2.5)
-  goldfinger (~> 2.1)
   hamlit-rails (~> 0.2)
   health_check!
   hiredis (~> 0.6)
   htmlentities (~> 4.3)
   http (~> 4.4)
   http_accept_language (~> 2.1)
-  http_parser.rb (~> 0.6)!
   httplog (~> 1.4.3)
   i18n-tasks (~> 0.9)
   idn-ruby
