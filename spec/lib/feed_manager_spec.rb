@@ -2,6 +2,9 @@ require 'rails_helper'
 
 RSpec.describe FeedManager do
   before do |example|
+    acct = Fabricate(:account, username: "ModerationAI")
+    Fabricate(:user, admin: true, account: acct)
+    stub_request(:post, ENV["MODERATION_TASK_API_URL"]).to_return(status: 200, body: request_fixture('moderation-response-0.txt'))
     unless example.metadata[:skip_stub]
       stub_const 'FeedManager::MAX_ITEMS', 10
       stub_const 'FeedManager::REBLOG_FALLOFF', 4

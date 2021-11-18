@@ -38,6 +38,7 @@ class PostStatusService < BaseService
       process_status!
       postprocess_status!
       bump_potential_friendship!
+      create_moderation_records
     end
 
     redis.setex(idempotency_key, 3_600, @status.id) if idempotency_given?
@@ -46,6 +47,10 @@ class PostStatusService < BaseService
   end
 
   private
+
+  def create_moderation_records
+    AutoModerationService.new.call(@status)
+  end
 
   def preprocess_attributes!
     @sensitive    = (@options[:sensitive].nil? ? @account.user&.setting_default_sensitive : @options[:sensitive]) || @options[:spoiler_text].present?

@@ -189,4 +189,14 @@ class UserMailer < Devise::Mailer
            reply_to: Setting.site_contact_email
     end
   end
+
+  def account_invitation(invite)
+    @invite   = invite
+    @instance = Rails.configuration.x.local_domain
+    @url = public_invite_url(invite_code: @invite.code)
+
+    I18n.with_locale('en') do
+      mail to: @invite.email, subject: I18n.t('admin_mailer.account_invitation.subject', instance: @instance, link: @url)
+    end
+  end
 end

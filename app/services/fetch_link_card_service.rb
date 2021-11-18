@@ -16,6 +16,13 @@ class FetchLinkCardService < BaseService
     @status = status
     @url    = parse_urls
 
+    @known_oembed_paths = {
+      "rumble.com": {
+        endpoint: 'https://rumble.com/api/Media/oembed.json?url={url}',
+        format: :json,
+      },
+    }
+
     return if @url.nil? || @status.preview_cards.any?
 
     @url = @url.to_s
@@ -46,7 +53,7 @@ class FetchLinkCardService < BaseService
   def html
     return @html if defined?(@html)
 
-    Request.new(:get, @url).add_headers('Accept' => 'text/html', 'User-Agent' => Mastodon::Version.user_agent + ' Bot').perform do |res|
+    Request.new(:get, @url).add_headers('Accept' => 'text/html', 'User-Agent' => "#{Mastodon::Version.user_agent} Bot").perform do |res|
       if res.code == 200 && res.mime_type == 'text/html'
         @html_charset = res.charset
         @html = res.body_with_limit
@@ -98,6 +105,7 @@ class FetchLinkCardService < BaseService
     cached_endpoint = Rails.cache.read("oembed_endpoint:#{url_domain}")
 
     embed   = service.call(@url, cached_endpoint: cached_endpoint) unless cached_endpoint.nil?
+    embed ||= service.call(@url, cached_endpoint: @known_oembed_paths[url_domain.to_sym]) if @known_oembed_paths.key?(url_domain.to_sym)
     embed ||= service.call(@url, html: html) unless html.nil?
 
     return false if embed.nil?

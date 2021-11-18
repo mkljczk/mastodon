@@ -4,8 +4,9 @@ source 'https://rubygems.org'
 ruby '>= 2.5.0', '< 3.1.0'
 
 gem 'pkg-config', '~> 1.4'
+gem 'openssl', '~> 2.2.0'
 
-gem 'puma', '~> 5.3'
+gem 'puma', '~> 5.4'
 gem 'rails', '~> 6.1.3'
 gem 'sprockets', '~> 3.7.2'
 gem 'thor', '~> 1.1'
@@ -18,6 +19,7 @@ gem 'pghero', '~> 2.8'
 gem 'dotenv-rails', '~> 2.7'
 
 gem 'aws-sdk-s3', '~> 1.96', require: false
+gem 'activerecord-import'
 gem 'fog-core', '<= 2.1.0'
 gem 'fog-openstack', '~> 0.3', require: false
 gem 'paperclip', '~> 6.0'
@@ -67,8 +69,9 @@ gem 'ox', '~> 2.14'
 gem 'parslet'
 gem 'parallel', '~> 1.20'
 gem 'posix-spawn'
-gem 'pundit', '~> 2.1'
+gem 'prometheus_exporter'
 gem 'premailer-rails'
+gem 'pundit', '~> 2.1'
 gem 'rack-attack', '~> 6.5'
 gem 'rack-cors', '~> 1.1', require: 'rack/cors'
 gem 'rails-i18n', '~> 6.0'
@@ -91,7 +94,7 @@ gem 'strong_migrations', '~> 0.7'
 gem 'tty-prompt', '~> 0.23', require: false
 gem 'twitter-text', '~> 3.1.0'
 gem 'tzinfo-data', '~> 1.2021'
-gem 'webpacker', '~> 5.4'
+gem 'webpacker', '~> 5.4.2'
 gem 'webpush', '~> 0.3'
 gem 'webauthn', '~> 3.0.0.alpha1'
 
@@ -157,3 +160,5 @@ gem 'connection_pool', require: false
 gem 'xorcist', '~> 1.1'
 
 gem 'resolv', '~> 0.1.0'
+
+gem 'newrelic_rpm', '~> 7.2'

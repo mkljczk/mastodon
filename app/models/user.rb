@@ -3,7 +3,6 @@
 #
 # Table name: users
 #
-#  id                        :bigint(8)        not null, primary key
 #  email                     :string           default(""), not null
 #  created_at                :datetime         not null
 #  updated_at                :datetime         not null
@@ -31,6 +30,7 @@
 #  otp_backup_codes          :string           is an Array
 #  filtered_languages        :string           default([]), not null, is an Array
 #  account_id                :bigint(8)        not null
+#  id                        :bigint(8)        not null, primary key
 #  disabled                  :boolean          default(FALSE), not null
 #  moderator                 :boolean          default(FALSE), not null
 #  invite_id                 :bigint(8)
@@ -82,6 +82,7 @@ class User < ApplicationRecord
   has_many :webauthn_credentials, dependent: :destroy
 
   has_one :invite_request, class_name: 'UserInviteRequest', inverse_of: :user, dependent: :destroy
+  has_one :trending
   accepts_nested_attributes_for :invite_request, reject_if: ->(attributes) { attributes['text'].blank? && !Setting.require_invite_text }
   validates :invite_request, presence: true, on: :create, if: :invite_text_required?
 
@@ -110,7 +111,7 @@ class User < ApplicationRecord
   scope :emailable, -> { confirmed.enabled.joins(:account).merge(Account.searchable) }
 
   before_validation :sanitize_languages
-  before_create :set_approved
+  before_create :set_approved, :skip_confirmation_if_invited
   after_commit :send_pending_devise_notifications
 
   # This avoids a deprecation warning from Rails 5.1
@@ -132,6 +133,10 @@ class User < ApplicationRecord
 
   def confirmed?
     confirmed_at.present?
+  end
+
+  def skip_confirmation_if_invited
+    skip_confirmation! if valid_invitation?
   end
 
   def invited?
@@ -174,11 +179,13 @@ class User < ApplicationRecord
   end
 
   def update_sign_in!(request, new_sign_in: false)
-    old_current, new_current = current_sign_in_at, Time.now.utc
+    old_current = current_sign_in_at
+    new_current = Time.now.utc
     self.last_sign_in_at     = old_current || new_current
     self.current_sign_in_at  = new_current
 
-    old_current, new_current = current_sign_in_ip, request.remote_ip
+    old_current = current_sign_in_ip
+    new_current = request.remote_ip
     self.last_sign_in_ip     = old_current || new_current
     self.current_sign_in_ip  = new_current
 
@@ -366,6 +373,12 @@ class User < ApplicationRecord
   def generate_sign_in_token
     self.sign_in_token         = Devise.friendly_token(6)
     self.sign_in_token_sent_at = Time.now.utc
+  end
+
+  # TODO: @features if we allow users to set chosen
+  # language in the future we should remove this.
+  def chosen_languages
+    nil
   end
 
   protected

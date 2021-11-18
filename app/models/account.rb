@@ -3,7 +3,6 @@
 #
 # Table name: accounts
 #
-#  id                            :bigint(8)        not null, primary key
 #  username                      :string           default(""), not null
 #  domain                        :string
 #  private_key                   :text
@@ -31,6 +30,7 @@
 #  shared_inbox_url              :string           default(""), not null
 #  followers_url                 :string           default(""), not null
 #  protocol                      :integer          default("ostatus"), not null
+#  id                            :bigint(8)        not null, primary key
 #  memorial                      :boolean          default(FALSE), not null
 #  moved_to_account_id           :bigint(8)
 #  featured_collection_url       :string
@@ -45,8 +45,12 @@
 #  avatar_storage_schema_version :integer
 #  header_storage_schema_version :integer
 #  devices_url                   :string
-#  suspension_origin             :integer
 #  sensitized_at                 :datetime
+#  suspension_origin             :integer
+#  settings_store                :jsonb
+#  verified                      :boolean          default(FALSE), not null
+#  location                      :text             default(""), not null
+#  website                       :text             default(""), not null
 #
 
 class Account < ApplicationRecord
@@ -116,7 +120,7 @@ class Account < ApplicationRecord
   scope :by_recent_status, -> { order(Arel.sql('(case when account_stats.last_status_at is null then 1 else 0 end) asc, account_stats.last_status_at desc, accounts.id desc')) }
   scope :by_recent_sign_in, -> { order(Arel.sql('(case when users.current_sign_in_at is null then 1 else 0 end) asc, users.current_sign_in_at desc, accounts.id desc')) }
   scope :popular, -> { order('account_stats.followers_count desc') }
-  scope :by_domain_and_subdomains, ->(domain) { where(domain: domain).or(where(arel_table[:domain].matches('%.' + domain))) }
+  scope :by_domain_and_subdomains, ->(domain) { where(domain: domain).or(where(arel_table[:domain].matches("%.#{domain}"))) }
   scope :not_excluded_by_account, ->(account) { where.not(id: account.excluded_from_timeline_account_ids) }
   scope :not_domain_blocked_by_account, ->(account) { where(arel_table[:domain].eq(nil).or(arel_table[:domain].not_in(account.excluded_from_timeline_domains))) }
 
@@ -173,15 +177,15 @@ class Account < ApplicationRecord
   alias group group?
 
   def acct
-    local? ? username : "#{username}@#{domain}"
+    local? ? username : username.to_s
   end
 
   def pretty_acct
-    local? ? username : "#{username}@#{Addressable::IDNA.to_unicode(domain)}"
+    local? ? username : username.to_s
   end
 
   def local_username_and_domain
-    "#{username}@#{Rails.configuration.x.local_domain}"
+    username.to_s
   end
 
   def local_followers_count
@@ -246,6 +250,22 @@ class Account < ApplicationRecord
       update!(suspended_at: nil, suspension_origin: nil)
       destroy_canonical_email_block!
     end
+  end
+
+  def verify!
+    transaction do
+      update!(verified: true)
+    end
+  end
+
+  def unverify!
+    transaction do
+      update!(verified: false)
+    end
+  end
+
+  def unverified?
+    verified == false
   end
 
   def sensitized?
@@ -360,6 +380,14 @@ class Account < ApplicationRecord
     username
   end
 
+  # TODO: follow_requests profile feature toggle "locked"
+  # this should override the db value of "locked" for an
+  # account. Remove this method if the locked feature is
+  # re-enabled in the future.
+  def locked
+    false
+  end
+
   def excluded_from_timeline_account_ids
     Rails.cache.fetch("exclude_account_ids_for:#{id}") { block_relationships.pluck(:target_account_id) + blocked_by_relationships.pluck(:account_id) + mute_relationships.pluck(:target_account_id) }
   end
@@ -397,13 +425,11 @@ class Account < ApplicationRecord
     end
 
     def value_for_verification
-      @value_for_verification ||= begin
-        if account.local?
-          value
-        else
-          ActionController::Base.helpers.strip_tags(value)
-        end
-      end
+      @value_for_verification ||= if account.local?
+                                    value
+                                  else
+                                    ActionController::Base.helpers.strip_tags(value)
+                                  end
     end
 
     def verifiable?
@@ -503,13 +529,12 @@ class Account < ApplicationRecord
       return [] if text.blank?
 
       text.scan(MENTION_RE).map { |match| match.first.split('@', 2) }.uniq.filter_map do |(username, domain)|
-        domain = begin
-          if TagManager.instance.local_domain?(domain)
-            nil
-          else
-            TagManager.instance.normalize_domain(domain)
-          end
-        end
+        domain = if TagManager.instance.local_domain?(domain)
+                   nil
+                 else
+                   TagManager.instance.normalize_domain(domain)
+                 end
+
         EntityCache.instance.mention(username, domain)
       end
     end

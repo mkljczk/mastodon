@@ -1,7 +1,7 @@
 .container-alt {
   width: 700px;
   margin: 0 auto;
-  margin-top: 40px;
+  padding-top: 60px;
 
   @media screen and (max-width: 740px) {
     width: 100%;
@@ -10,7 +10,7 @@
 }
 
 .logo-container {
-  margin: 100px auto 50px;
+  margin: 30px auto 40px auto;
 
   @media screen and (max-width: 500px) {
     margin: 40px auto 0;
@@ -23,7 +23,7 @@
 
     svg {
       fill: $primary-text-color;
-      height: 42px;
+      height: 60px;
       margin-right: 10px;
     }
 

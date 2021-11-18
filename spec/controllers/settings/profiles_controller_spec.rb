@@ -25,6 +25,17 @@ RSpec.describe Settings::ProfilesController, type: :controller do
       expect(response).to redirect_to(settings_profile_path)
       expect(ActivityPub::UpdateDistributionWorker).to have_received(:perform_async).with(account.id)
     end
+
+    it 'updates the user location and website' do
+      allow(ActivityPub::UpdateDistributionWorker).to receive(:perform_async)
+      account = Fabricate(:account, user: @user, display_name: 'Old name')
+
+      put :update, params: { account: { website: 'www.mywebsite.com', location: 'my location' } }
+      expect(account.reload.website).to eq 'www.mywebsite.com'
+      expect(account.reload.location).to eq 'my location'
+      expect(response).to redirect_to(settings_profile_path)
+      expect(ActivityPub::UpdateDistributionWorker).to have_received(:perform_async).with(account.id)
+    end
   end
 
   describe 'PUT #update with new profile image' do

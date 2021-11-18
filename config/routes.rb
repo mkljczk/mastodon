@@ -148,7 +148,7 @@ Rails.application.routes.draw do
 
     resources :identity_proofs, only: [:index, :new, :create, :destroy]
 
-    resources :applications, except: [:edit] do
+    resources :applications, except: [:edit, :index] do
       member do
         post :regenerate
       end
@@ -173,10 +173,10 @@ Rails.application.routes.draw do
   resources :tags,   only: [:show]
   resources :emojis, only: [:show]
   resources :invites, only: [:index, :create, :destroy]
-  resources :filters, except: [:show]
-  resource :relationships, only: [:show, :update]
+  resources :filters, except: [:show, :index]
+  resource :relationships, only: [:update]
 
-  get '/public', to: 'public_timelines#show', as: :public_timeline
+  # get '/public', to: 'public_timelines#show', as: :public_timeline
   get '/media_proxy/:id/(*any)', to: 'media_proxy#show', as: :media_proxy
 
   resource :authorize_interaction, only: [:show, :create]
@@ -222,7 +222,7 @@ Rails.application.routes.draw do
         post :stop_delivery
       end
     end
-  
+
     resources :rules
 
     resources :reports, only: [:index, :show] do
@@ -235,6 +235,8 @@ Rails.application.routes.draw do
 
       resources :reported_statuses, only: [:create]
     end
+
+    resources :trending_truths, only: [:index, :update, :destroy]
 
     resources :report_notes, only: [:create, :destroy]
 
@@ -250,6 +252,7 @@ Rails.application.routes.draw do
         post :memorialize
         post :approve
         post :reject
+        post :unverify
       end
 
       resource :change_email, only: [:show, :update]
@@ -317,6 +320,12 @@ Rails.application.routes.draw do
     # Identity proofs
     get :proofs, to: 'proofs#index'
 
+    # Initial state
+    get :initial_state, to: 'initial_state#index'
+
+    # Custom auth endpoints
+    delete :sign_out, to: 'auth#destroy'
+
     # JSON / REST API
     namespace :v1 do
       resources :statuses, only: [:create, :show, :destroy] do
@@ -346,9 +355,15 @@ Rails.application.routes.draw do
 
       namespace :timelines do
         resource :home, only: :show, controller: :home
-        resource :public, only: :show, controller: :public
+        # resource :public, only: :show, controller: :public
         resources :tag, only: :show
         resources :list, only: :show
+      end
+
+      namespace :truth do
+        namespace :trending do
+          resources :truths, only: :index
+        end
       end
 
       resources :streaming, only: [:index]
@@ -494,6 +509,7 @@ Rails.application.routes.draw do
             post :unsuspend
             post :approve
             post :reject
+            post :unverify
           end
 
           resource :action, only: [:create], controller: 'account_actions'

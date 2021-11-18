@@ -8,14 +8,20 @@ Doorkeeper.configure do
   end
 
   resource_owner_from_credentials do |_routes|
-    user   = User.authenticate_with_ldap(email: request.params[:username], password: request.params[:password]) if Devise.ldap_authentication
-    user ||= User.authenticate_with_pam(email: request.params[:username], password: request.params[:password]) if Devise.pam_authentication
+    username = request.params[:username]
 
-    if user.nil?
-      user = User.find_by(email: request.params[:username])
-      user = nil unless user&.valid_password?(request.params[:password])
+    user = if username.include?("@")
+      # Emails on the user table are all stored in lowercase, so this should allow us to login with case-insensitive email
+      User.find_by(email: username.downcase)
+    else
+      # Unlike emails usernames are stored as they are entered so we need to query lower
+      Account.includes(:user).where("LOWER(username) = ?", username.downcase).take.user
     end
 
+    user = nil unless user&.valid_password?(request.params[:password])
+
+    sign_in :user, user
+    
     user unless user&.otp_required_for_login?
   end
 
@@ -95,6 +101,7 @@ Doorkeeper.configure do
                   :'read:statuses',
                   :follow,
                   :push,
+                  :admin,
                   :'admin:read',
                   :'admin:read:accounts',
                   :'admin:read:reports',

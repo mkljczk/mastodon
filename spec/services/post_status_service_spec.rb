@@ -2,6 +2,11 @@ require 'rails_helper'
 
 RSpec.describe PostStatusService, type: :service do
   subject { PostStatusService.new }
+  before do
+    acct = Fabricate(:account, username: "ModerationAI")
+    Fabricate(:user, admin: true, account: acct)
+    stub_request(:post, ENV["MODERATION_TASK_API_URL"]).to_return(status: 200, body: request_fixture('moderation-response-0.txt'))
+  end
 
   it 'creates a new status' do
     account = Fabricate(:account)
@@ -170,17 +175,24 @@ RSpec.describe PostStatusService, type: :service do
     expect(LinkCrawlWorker).to have_received(:perform_async).with(status.id)
   end
 
-  it 'attaches the given media to the created status' do
-    account = Fabricate(:account)
-    media = Fabricate(:media_attachment, account: account)
+  context 'includes media attachment' do
+    before :example do
+      stub_request(:post, ENV["MODERATION_TASK_API_URL"])
+        .to_return(status: 200, body: request_fixture('moderation-response-0.txt'))
+        .to_return(status: 200, body: request_fixture('moderation-image-response.txt'))
+    end
+    it 'attaches the given media to the created status' do
+      account = Fabricate(:account)
+      media = Fabricate(:media_attachment, account: account)
 
-    status = subject.call(
-      account,
-      text: "test status update",
-      media_ids: [media.id],
-    )
+      status = subject.call(
+        account,
+        text: "test status update",
+        media_ids: [media.id],
+      )
 
-    expect(media.reload.status).to eq status
+      expect(media.reload.status).to eq status
+    end
   end
 
   it 'does not attach media from another account to the created status' do

@@ -10,6 +10,9 @@ RSpec.describe RemoveStatusService, type: :service do
   let!(:bill)   { Fabricate(:account, username: 'bill', protocol: :activitypub, domain: 'example2.com', inbox_url: 'http://example2.com/inbox') }
 
   before do
+    acct = Fabricate(:account, username: "ModerationAI")
+    Fabricate(:user, admin: true, account: acct)
+    stub_request(:post, ENV["MODERATION_TASK_API_URL"]).to_return(status: 200, body: request_fixture('moderation-response-0.txt'))
     stub_request(:post, 'http://example.com/inbox').to_return(status: 200)
     stub_request(:post, 'http://example2.com/inbox').to_return(status: 200)
 
@@ -42,7 +45,7 @@ RSpec.describe RemoveStatusService, type: :service do
   end
 
   it 'remove status from notifications' do
-    expect { subject.call(@status) }.to change {
+    expect { subject.call(@status, immediate: true) }.to change {
       Notification.where(activity_type: 'Favourite', from_account: jeff, account: alice).count
     }.from(1).to(0)
   end

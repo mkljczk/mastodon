@@ -75,6 +75,13 @@ module Admin
       redirect_to admin_account_path(@account.id), notice: I18n.t('admin.accounts.unsuspended_msg', username: @account.acct)
     end
 
+    def unverify
+      authorize @account, :unverify?
+      @account.unverify!
+      log_action :unverify, @account
+      redirect_to admin_account_path(@account.id), notice: I18n.t('admin.accounts.unverified_msg', username: @account.acct)
+    end
+
     def redownload
       authorize @account, :redownload?
 

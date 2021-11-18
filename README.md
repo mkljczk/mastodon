@@ -76,13 +76,43 @@ The repository includes deployment configurations for **Docker and docker-compos
 
 A **Vagrant** configuration is included for development purposes.
 
-## Contributing
+## Development
 
-Mastodon is **free, open-source software** licensed under **AGPLv3**.
+Setting up a dev environment will vary based on your operating system. These set of instructions are assuming you are running on a Mac.
 
-You can open issues for bugs you've found or features you think are missing. You can also submit pull requests to this repository, or submit translations using Crowdin. To get started, take a look at [CONTRIBUTING.md](CONTRIBUTING.md). If your contributions are accepted into Mastodon, you can request to be paid through [our OpenCollective](https://opencollective.com/mastodon).
+#### Clone the repo
 
-**IRC channel**: #mastodon on irc.libera.chat
+`git clone #{repo}`
+
+`cd social-v1`
+
+The development has occured on the develop branch so check that one out.
+
+`git checkout develop`
+
+#### Install dependencies and setup DB
+
+`yarn install && bundle install`
+
+You will also need to install direnv for some config
+
+`brew install direnv`
+
+Setup your db
+
+`RAILS_ENV=development rails db:setup`
+
+To run all the processes needed for mastodon, you should install foreman
+
+`gem install foreman --no-document`
+
+We need to enable redis caching locally so the sessions can be written there
+
+`RAILS_ENV=development rails dev:cache`
+
+#### Running the server
+
+`foreman start`
 
 ## License
 

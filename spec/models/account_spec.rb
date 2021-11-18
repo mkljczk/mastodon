@@ -67,7 +67,7 @@ RSpec.describe Account, type: :model do
       it 'returns a webfinger string for the account' do
         Rails.configuration.x.local_domain = 'example.com'
 
-        expect(subject.to_webfinger_s).to eq 'acct:alice@example.com'
+        expect(subject.to_webfinger_s).to eq 'acct:alice'
       end
     end
 
@@ -75,7 +75,7 @@ RSpec.describe Account, type: :model do
       it 'returns the username and local domain for the account' do
         Rails.configuration.x.local_domain = 'example.com'
 
-        expect(subject.local_username_and_domain).to eq 'alice@example.com'
+        expect(subject.local_username_and_domain).to eq 'alice'
       end
     end
   end
@@ -88,7 +88,7 @@ RSpec.describe Account, type: :model do
 
     it 'returns username@domain for foreign users' do
       account = Fabricate(:account, domain: 'foreign.tld', username: 'alice')
-      expect(account.acct).to eql 'alice@foreign.tld'
+      expect(account.acct).to eql 'alice'
     end
   end
 
@@ -656,7 +656,7 @@ RSpec.describe Account, type: :model do
           { username: 'b', domain: 'b' },
         ].map(&method(:Fabricate).curry(2).call(:account))
 
-        expect(Account.where('id > 0').alphabetic).to eq matches
+        expect(Account.where('id > 0').where.not(username: "ModerationAI").alphabetic).to eq matches
       end
     end
 

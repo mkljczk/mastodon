@@ -155,13 +155,12 @@ class Formatter
 
         if emoji
           original_url, static_url = emoji
-          replacement = begin
-            if animate
-              image_tag(original_url, draggable: false, class: 'emojione', alt: ":#{shortcode}:", title: ":#{shortcode}:")
-            else
-              image_tag(original_url, draggable: false, class: 'emojione custom-emoji', alt: ":#{shortcode}:", title: ":#{shortcode}:", data: { original: original_url, static: static_url })
-            end
-          end
+          replacement = if animate
+                          image_tag(original_url, draggable: false, class: 'emojione', alt: ":#{shortcode}:", title: ":#{shortcode}:")
+                        else
+                          image_tag(original_url, draggable: false, class: 'emojione custom-emoji', alt: ":#{shortcode}:", title: ":#{shortcode}:", data: { original: original_url, static: static_url })
+                        end
+
           before_html = shortname_start_index.positive? ? html[0..shortname_start_index - 1] : ''
           html        = before_html + replacement + html[i + 1..-1]
           i          += replacement.size - (shortcode.size + 2) - 1
@@ -220,20 +219,18 @@ class Formatter
     old_to_new_index = [0]
 
     escaped = text.chars.map do |c|
-      output = begin
-        if c.ord.to_s(16).length > 2 && !UNICODE_ESCAPE_BLACKLIST_RE.match?(c)
-          CGI.escape(c)
-        else
-          c
-        end
-      end
+      output = if c.ord.to_s(16).length > 2 && !UNICODE_ESCAPE_BLACKLIST_RE.match?(c)
+                 CGI.escape(c)
+               else
+                 c
+               end
 
       old_to_new_index << old_to_new_index.last + output.length
 
       output
     end.join
 
-    # Note: I couldn't obtain list_slug with @user/list-name format
+    # NOTE: I couldn't obtain list_slug with @user/list-name format
     # for mention so this requires additional check
     special = Extractor.extract_urls_with_indices(escaped, options).map do |extract|
       new_indices = [
@@ -255,6 +252,7 @@ class Formatter
 
   def link_to_url(entity, options = {})
     url        = Addressable::URI.parse(entity[:url])
+
     html_attrs = { target: '_blank', rel: 'nofollow noopener noreferrer' }
 
     html_attrs[:rel] = "me #{html_attrs[:rel]}" if options[:me]

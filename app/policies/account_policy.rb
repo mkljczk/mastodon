@@ -33,6 +33,14 @@ class AccountPolicy < ApplicationPolicy
     staff?
   end
 
+  def verify?
+    staff? && !record&.verified?
+  end
+
+  def unverify?
+    staff? && record&.verified?
+  end
+
   def silence?
     staff? && !record.user&.staff?
   end

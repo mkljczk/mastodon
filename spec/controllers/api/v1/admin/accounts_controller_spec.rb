@@ -127,6 +127,24 @@ RSpec.describe Api::V1::Admin::AccountsController, type: :controller do
     end
   end
 
+  describe 'POST #unverify' do
+    before do
+      account.verify!
+      post :unverify, params: { id: account.id }
+    end
+
+    it_behaves_like 'forbidden for wrong scope', 'write:statuses'
+    it_behaves_like 'forbidden for wrong role', 'user'
+
+    it 'returns http success' do
+      expect(response).to have_http_status(302)
+    end
+
+    it 'unsuspends account' do
+      expect(account.reload.verified?).to be false
+    end
+  end
+
   describe 'POST #unsensitive' do
     before do
       account.touch(:sensitized_at)

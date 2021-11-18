@@ -2,6 +2,10 @@
 
 class UserMailerPreview < ActionMailer::Preview
   # Preview this email at http://localhost:3000/rails/mailers/user_mailer/confirmation_instructions
+  def account_invitation
+    UserMailer.account_invitation(Invite.first)
+  end
+
   def confirmation_instructions
     UserMailer.confirmation_instructions(User.first, 'spec')
   end

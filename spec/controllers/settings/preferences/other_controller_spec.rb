@@ -23,10 +23,12 @@ describe Settings::Preferences::OtherController do
       expect(response).to redirect_to(settings_preferences_other_path)
       user.reload
       expect(user.locale).to eq 'en'
-      expect(user.chosen_languages).to eq ['es', 'fr']
+      # TODO: @features This is no longer user configurable
+      # expect(user.chosen_languages).to eq ['es', 'fr']
     end
 
-    it 'updates user settings' do
+    #TODO: @features these are no longer user configurable
+    xit 'updates user settings' do
       user.settings['boost_modal'] = false
       user.settings['delete_modal'] = true
 

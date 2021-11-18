@@ -5,6 +5,8 @@ class UpdateAccountService < BaseService
     was_locked    = account.locked
     update_method = raise_error ? :update! : :update
 
+    params['settings_store'] = params['pleroma_settings_store']
+    params.delete('pleroma_settings_store')
     account.send(update_method, params).tap do |ret|
       next unless ret
 

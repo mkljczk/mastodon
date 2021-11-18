@@ -23,10 +23,11 @@ describe Api::V1::Accounts::CredentialsController do
     describe 'PATCH #update' do
       let(:scopes) { 'write:accounts' }
 
-      describe 'with valid data' do
+      describe 'with valid data', tag: "tag" do
         before do
           allow(ActivityPub::UpdateDistributionWorker).to receive(:perform_async)
 
+          expect(user.account.settings_store).to eq({})
           patch :update, params: {
             display_name: "Alice Isn't Dead",
             note: "Hi!\n\nToot toot!",
@@ -35,7 +36,8 @@ describe Api::V1::Accounts::CredentialsController do
             source: {
               privacy: 'unlisted',
               sensitive: true,
-            }
+            },
+            pleroma_settings_store: { jason: "bateman" }
           }
         end
 
@@ -51,7 +53,9 @@ describe Api::V1::Accounts::CredentialsController do
           expect(user.account.avatar).to exist
           expect(user.account.header).to exist
           expect(user.setting_default_privacy).to eq('unlisted')
-          expect(user.setting_default_sensitive).to eq(true)
+          # TODO @features This setting is not user configurable
+          # expect(user.setting_default_sensitive).to eq(true)
+          expect(user.account.settings_store).to eq({ "jason" => 'bateman'})
         end
 
         it 'queues up an account update distribution' do

@@ -11,6 +11,7 @@ class Admin::AccountAction
     sensitive
     silence
     suspend
+    verify
   ).freeze
 
   attr_accessor :target_account,
@@ -69,6 +70,8 @@ class Admin::AccountAction
       handle_sensitive!
     when 'silence'
       handle_silence!
+    when 'verify'
+      handle_verify!
     when 'suspend'
       handle_suspend!
     end
@@ -130,6 +133,12 @@ class Admin::AccountAction
     target_account.suspend!(origin: :local)
   end
 
+  def handle_verify!
+    authorize(target_account, :verify?)
+    log_action(:verify, target_account)
+    target_account.verify!
+  end
+
   def text_for_warning
     [warning_preset&.text, text].compact.join("\n\n")
   end
@@ -155,13 +164,11 @@ class Admin::AccountAction
   end
 
   def reports
-    @reports ||= begin
-      if type == 'none' && with_report?
-        [report]
-      else
-        Report.where(target_account: target_account).unresolved
-      end
-    end
+    @reports ||= if type == 'none' && with_report?
+                   [report]
+                 else
+                   Report.where(target_account: target_account).unresolved
+                 end
   end
 
   def warning_preset

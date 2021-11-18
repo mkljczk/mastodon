@@ -130,8 +130,7 @@ class ApplicationController < ActionController::Base
   end
 
   def current_theme
-    return Setting.theme unless Themes.instance.names.include? current_user&.setting_theme
-    current_user.setting_theme
+    'mastodon-light'
   end
 
   def respond_with_error(code)

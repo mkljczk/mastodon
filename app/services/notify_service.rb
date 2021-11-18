@@ -63,6 +63,10 @@ class NotifyService < BaseService
     @notification.type == :mention
   end
 
+  def invite?
+    @notification.type == :invite
+  end
+
   def direct_message?
     message? && @notification.target_status.direct_visibility?
   end
@@ -95,6 +99,8 @@ class NotifyService < BaseService
   end
 
   def blocked?
+    return false if invite?                                      # Skip if invite notification
+
     blocked   = @recipient.suspended?                            # Skip if the recipient account is suspended anyway
     blocked ||= from_self? && @notification.type != :poll        # Skip for interactions with self
 
