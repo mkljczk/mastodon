@@ -73,3 +73,5 @@ dump.rdb
 # nvmrc
 .envrc
 .yarn-integrity
+
+/config/newrelic.yml
