@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2022_02_19_181316) do
+ActiveRecord::Schema.define(version: 2022_04_18_211320) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -180,6 +180,7 @@ ActiveRecord::Schema.define(version: 2022_02_19_181316) do
     t.boolean "verified", default: false, null: false
     t.text "location", default: "", null: false
     t.text "website", default: "", null: false
+    t.boolean "whale", default: false
     t.index "(((setweight(to_tsvector('simple'::regconfig, (display_name)::text), 'A'::\"char\") || setweight(to_tsvector('simple'::regconfig, (username)::text), 'B'::\"char\")) || setweight(to_tsvector('simple'::regconfig, (COALESCE(domain, ''::character varying))::text), 'C'::\"char\")))", name: "search_index", using: :gin
     t.index "lower((username)::text), COALESCE(lower((domain)::text), ''::text)", name: "index_accounts_on_username_and_domain_lower", unique: true
     t.index ["moved_to_account_id"], name: "index_accounts_on_moved_to_account_id"
@@ -598,6 +599,7 @@ ActiveRecord::Schema.define(version: 2022_02_19_181316) do
     t.bigint "account_id", null: false
     t.bigint "from_account_id", null: false
     t.string "type"
+    t.integer "count"
     t.index ["account_id", "id", "type"], name: "index_notifications_on_account_id_and_id_and_type", order: { id: :desc }
     t.index ["activity_id", "activity_type"], name: "index_notifications_on_activity_id_and_activity_type"
     t.index ["from_account_id"], name: "index_notifications_on_from_account_id"
@@ -625,6 +627,7 @@ ActiveRecord::Schema.define(version: 2022_02_19_181316) do
     t.string "scopes"
     t.bigint "application_id"
     t.bigint "resource_owner_id"
+    t.index ["application_id"], name: "index_oauth_access_tokens_on_application_id"
     t.index ["refresh_token"], name: "index_oauth_access_tokens_on_refresh_token", unique: true
     t.index ["resource_owner_id"], name: "index_oauth_access_tokens_on_resource_owner_id"
     t.index ["token"], name: "index_oauth_access_tokens_on_token", unique: true
@@ -855,6 +858,7 @@ ActiveRecord::Schema.define(version: 2022_02_19_181316) do
     t.datetime "deleted_at"
     t.bigint "deleted_by_id"
     t.index ["account_id", "id", "visibility", "updated_at"], name: "index_statuses_20190820", order: { id: :desc }, where: "(deleted_at IS NULL)"
+    t.index ["conversation_id"], name: "index_statuses_on_conversation_id"
     t.index ["id", "account_id"], name: "index_statuses_local_20190824", order: { id: :desc }, where: "((local OR (uri IS NULL)) AND (deleted_at IS NULL) AND (visibility = 0) AND (reblog_of_id IS NULL) AND ((NOT reply) OR (in_reply_to_account_id = account_id)))"
     t.index ["id", "account_id"], name: "index_statuses_public_20200119", order: { id: :desc }, where: "((deleted_at IS NULL) AND (visibility = 0) AND (reblog_of_id IS NULL) AND ((NOT reply) OR (in_reply_to_account_id = account_id)))"
     t.index ["in_reply_to_account_id"], name: "index_statuses_on_in_reply_to_account_id"
@@ -967,6 +971,7 @@ ActiveRecord::Schema.define(version: 2022_02_19_181316) do
     t.string "sms"
     t.integer "waitlist_position"
     t.boolean "unsubscribe_from_emails", default: false
+    t.integer "ready_to_approve", default: 0
     t.index ["account_id"], name: "index_users_on_account_id"
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["created_by_application_id"], name: "index_users_on_created_by_application_id"
@@ -990,6 +995,7 @@ ActiveRecord::Schema.define(version: 2022_02_19_181316) do
     t.integer "platform", default: 0
     t.integer "environment", default: 0
     t.index ["access_token_id"], name: "index_web_push_subscriptions_on_access_token_id"
+    t.index ["device_token"], name: "index_web_push_subscriptions_on_device_token"
     t.index ["user_id"], name: "index_web_push_subscriptions_on_user_id"
   end
 

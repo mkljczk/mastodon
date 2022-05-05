@@ -54,11 +54,11 @@ class REST::AccountSerializer < ActiveModel::Serializer
   end
 
   def header
-    full_asset_url(object.suspended? ? object.header.default_url : object.header_original_url)
+    object&.header_file_name ?  full_asset_url(object.suspended? ? object.header.default_url : object.header_original_url) : ''
   end
 
   def header_static
-    full_asset_url(object.suspended? ? object.header.default_url : object.header_static_url)
+    object&.header_file_name ? full_asset_url(object.suspended? ? object.header.default_url : object.header_static_url) : ''
   end
 
   def created_at

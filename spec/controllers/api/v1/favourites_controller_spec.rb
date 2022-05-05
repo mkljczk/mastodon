@@ -8,9 +8,9 @@ RSpec.describe Api::V1::FavouritesController, type: :controller do
 
   describe 'GET #index' do
     context 'without token' do
-      it 'returns http unauthorized' do
+      it 'returns http forbidden' do
         get :index
-        expect(response).to have_http_status :unauthorized
+        expect(response).to have_http_status :forbidden
       end
     end
 

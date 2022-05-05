@@ -45,8 +45,26 @@ class Api::V1::Admin::AccountsController < Api::BaseController
     render json: @account, serializer: REST::Admin::AccountSerializer
   end
 
+  def update
+    update_hash = update_params.to_h
+    if (!@account.user.not_ready_for_approval? && !@account.user.ready_by_csv_import?)
+      update_hash[:approved] = true
+      export_prometheus_metric(:approves)
+    end
+
+    if @account.user.update!(update_hash)
+      render json: @account, serializer: REST::Admin::AccountSerializer
+    else
+      user_errors = account.user.errors.to_h
+      render json: { errors: user_errors }, status: 422
+    end
+  end
+
   def create
-    account = Account.new(username: params[:username])
+    account = Account.new(
+      username: params[:username],
+      discoverable: params[:role] != 'moderator'
+    )
 
     user = User.new(
       email: params[:email],
@@ -62,14 +80,15 @@ class Api::V1::Admin::AccountsController < Api::BaseController
 
     user.account = account
     account.verify! if ['true', true].include?(params[:verified])
-    user.set_waitlist_position unless params[:approved]
+    user.set_waitlist_position unless user.approved
 
     if user.save
       send_registration_email(user)
-      export_prometheus_metric
+      export_prometheus_metric(:registrations)
       render json: user.account, serializer: REST::Admin::AccountCreateSerializer
     else
-      render json: { errors: user.errors.to_h }, status: 422
+      user_errors = user.errors.to_h
+      render json: { errors: user_errors }, status: 422
     end
   end
 
@@ -139,6 +158,13 @@ class Api::V1::Admin::AccountsController < Api::BaseController
     render json: @account, serializer: REST::Admin::AccountSerializer
   end
 
+  def verify
+    authorize @account, :verify?
+    @account.verify!
+    log_action :verify, @account
+    render json: @account, serializer: REST::Admin::AccountSerializer
+  end
+
   def unverify
     authorize @account, :unverify?
     @account.unverify!
@@ -166,6 +192,10 @@ class Api::V1::Admin::AccountsController < Api::BaseController
 
   def bulk_approve_params
     params.permit(:number, :all)
+  end
+
+  def update_params
+    params.permit(:sms)
   end
 
   def insert_pagination_headers
@@ -200,8 +230,8 @@ class Api::V1::Admin::AccountsController < Api::BaseController
     forbidden unless @account.local? && @account.user.present?
   end
 
-  def export_prometheus_metric
-    Prometheus::ApplicationExporter::increment(:registrations)
+  def export_prometheus_metric(metric_type)
+    Prometheus::ApplicationExporter::increment(metric_type)
   end
 
   def send_registration_email(user)

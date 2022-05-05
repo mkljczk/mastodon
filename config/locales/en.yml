@@ -1084,10 +1084,14 @@ en:
       body: 'Your post was liked by %{name}:'
       subject: "%{name} liked your post"
       title: New favorite
+    favourite_group:
+      subject: "%{name} + %{count_others} %{actor} liked your Truth"
     follow:
       body: "%{name} is now following you!"
       subject: "%{name} is now following you"
       title: New follower
+    follow_group:
+      subject: "%{name} + %{count_others} %{actor} followed you"
     follow_request:
       action: Manage follow requests
       body: "%{name} has requested to follow you"
@@ -1098,12 +1102,16 @@ en:
       body: 'You were mentioned by %{name} in:'
       subject: You were mentioned by %{name}
       title: New mention
+    mention_group:
+      subject: "%{name} + %{count_others} %{actor} mentioned you"
     poll:
       subject: A poll by %{name} has ended
     reblog:
       body: 'Your post was ReTruthed by %{name}:'
       subject: "%{name} ReTruthed your post"
       title: New ReTruth
+    reblog_group:
+      subject: "%{name} + %{count_others} %{actor} ReTruthed your Truth"
     status:
       subject: "%{name} just posted"
     user_approved:
@@ -1126,6 +1134,8 @@ en:
       tip_mobile_webapp: If your mobile browser offers you to add Truth to your homescreen, you can receive push notifications. It acts like a native app in many ways!
       tips: Tips
       title: Welcome to Truth Social, %{name}!
+    verify_sms_prompt:
+      subject: Your account is now active on Truth Social! Upgrade to the latest version and join us now!
   notifications:
     email_events: Events for e-mail notifications
     email_events_hint: 'Select events that you want to receive notifications for:'

@@ -2,16 +2,15 @@
 
 lock '3.16.0'
 
-set :repo_url, ENV.fetch('REPO', 'https://github.com/tootsuite/mastodon.git')
-set :branch, ENV.fetch('BRANCH', 'master')
-
-set :application, 'mastodon'
+set :application, 'truth'
+set :deploy_user, 'truth'
+set :services_prefix, 'mastodon'
 set :rbenv_type, :user
 set :rbenv_ruby, File.read('.ruby-version').strip
 set :migration_role, :app
 
-append :linked_files, '.env.production', 'public/robots.txt'
-append :linked_dirs, 'vendor/bundle', 'node_modules', 'public/system'
+#append :linked_dirs, 'vendor/bundle', 'node_modules', 'public/system'
+append :linked_dirs, 'vendor/bundle', 'public/system'
 
 namespace :systemd do
   %i[sidekiq streaming web].each do |service|
@@ -20,13 +19,13 @@ namespace :systemd do
       task "#{service}:#{action}".to_sym do
         on roles(:app) do
           # runs e.g. "sudo restart mastodon-sidekiq.service"
-          sudo :systemctl, action, "#{fetch(:application)}-#{service}.service"
+          sudo :systemctl, action, "#{fetch(:services_prefix)}-#{service}.service"
         end
       end
     end
   end
 end
 
-after 'deploy:publishing', 'systemd:web:reload'
+after 'deploy:publishing', 'systemd:web:restart'
 after 'deploy:publishing', 'systemd:sidekiq:restart'
 after 'deploy:publishing', 'systemd:streaming:restart'

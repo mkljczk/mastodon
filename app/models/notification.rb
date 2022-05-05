@@ -11,6 +11,7 @@
 #  account_id      :bigint(8)        not null
 #  from_account_id :bigint(8)        not null
 #  type            :string
+#  count           :integer
 #
 
 class Notification < ApplicationRecord
@@ -39,17 +40,28 @@ class Notification < ApplicationRecord
     favourite
     poll
     user_approved
+    verify_sms_prompt
+    mention_group
+    reblog_group
+    follow_group
+    favourite_group
   ).freeze
 
   TARGET_STATUS_INCLUDES_BY_TYPE = {
     status: :status,
     invite: [invite: :users],
     reblog: [status: :reblog],
+    reblog_group: [status: :reblog],
     mention: [mention: :status],
+    mention_group: [mention: :status],
     favourite: [favourite: :status],
+    favourite_group: [favourite: :status],
     poll: [poll: :status],
     user_approved: :user,
+    verify_sms_prompt: :user,
   }.freeze
+
+  attr_accessor :passed_from_account
 
   belongs_to :account, optional: true
   belongs_to :from_account, class_name: 'Account', optional: true
@@ -84,7 +96,7 @@ class Notification < ApplicationRecord
 
   def target_status
     case type
-    when :status
+    when :status, :favourite_group, :mention_group, :reblog_group
       status
     when :reblog
       status&.reblog
@@ -118,7 +130,7 @@ class Notification < ApplicationRecord
         cached_status = cached_statuses_by_id[notification.target_status.id]
 
         case notification.type
-        when :status
+        when :status, :favourite_group, :mention_group, :reblog_group
           notification.status = cached_status
         when :reblog
           notification.status.reblog = cached_status
@@ -142,16 +154,19 @@ class Notification < ApplicationRecord
 
   def set_from_account
     return unless new_record?
-
-    case activity_type
-    when 'Status', 'Follow', 'Favourite', 'FollowRequest', 'Poll'
-      self.from_account_id = activity&.account_id
-    when 'Mention'
-      self.from_account_id = activity&.status&.account_id
-    when 'Invite'
-      self.from_account_id = activity&.users&.first&.account_id
-    when 'User'
-      self.from_account_id = activity&.account_id
+    if self.passed_from_account.present?
+      self.from_account_id = self.passed_from_account
+    else
+      case activity_type
+      when 'Status', 'Follow', 'Favourite', 'FollowRequest', 'Poll'
+        self.from_account_id = activity&.account_id
+      when 'Mention'
+        self.from_account_id = activity&.status&.account_id
+      when 'Invite'
+        self.from_account_id = activity&.users&.first&.account_id
+      when 'User'
+        self.from_account_id = activity&.account_id
+      end
     end
   end
 end

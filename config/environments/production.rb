@@ -81,6 +81,8 @@ Rails.application.configure do
   config.lograge.custom_payload do |controller|
     payload_data = {
       user_ip: controller.request.remote_ip,
+      forwarded_ip: "[#{controller.request.headers["X-Forwarded-For"]}]",
+      host: controller.request.host,
     }
 
     if defined? controller.current_user_id

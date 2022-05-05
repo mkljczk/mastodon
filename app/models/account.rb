@@ -51,6 +51,7 @@
 #  verified                      :boolean          default(FALSE), not null
 #  location                      :text             default(""), not null
 #  website                       :text             default(""), not null
+#  whale                         :boolean          default(FALSE)
 #
 
 class Account < ApplicationRecord
@@ -388,6 +389,10 @@ class Account < ApplicationRecord
     errors.add(:base, "Please enter a valid website") if JAVASCRIPT_RE.match(website)
   end
 
+  # TODO: follow_requests profile feature toggle "locked"
+  # this should override the db value of "locked" for an
+  # account. Remove this method if the locked feature is
+  # re-enabled in the future.
   def locked
     false
   end
@@ -409,6 +414,17 @@ class Account < ApplicationRecord
 
     @synchronization_uri_prefix ||= uri[/http(s?):\/\/[^\/]+\//]
   end
+
+  def promote_to_whale!
+    update!(whale: true)
+    WhaleCacheInvalidationWorker.perform_async(id)
+  end
+
+  def demote_from_whale!
+    update!(whale: false)
+    WhaleCacheInvalidationWorker.perform_async(id)
+  end
+
 
   class Field < ActiveModelSerializers::Model
     attributes :name, :value, :verified_at, :account

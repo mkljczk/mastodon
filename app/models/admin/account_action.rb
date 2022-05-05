@@ -169,7 +169,8 @@ class Admin::AccountAction
     target_account.suspend!(origin: :local)
 
     if account_suspension_policy.strikes_expended?
-      Admin::AccountDeletionWorker.perform_async(target_account.id)
+      # Commented out to avoid destroying evidence
+      # Admin::AccountDeletionWorker.perform_async(target_account.id)
     else
       schedule_unsuspension!
     end

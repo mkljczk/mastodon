@@ -25,7 +25,8 @@ class ReportCreatedEvent
       target_account_id: report.target_account_id,
       target_account_username: report.target_account.username,
       comment: report.comment,
-      status_ids: report.status_ids
+      status_ids: report.status_ids,
+      rule_ids: report.rule_ids
     )
   end
 end

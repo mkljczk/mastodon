@@ -23,6 +23,7 @@ end
 setup_redis_env_url
 setup_redis_env_url(:cache, false)
 setup_redis_env_url(:sidekiq, false)
+setup_redis_env_url(:timeline, false)
 
 namespace         = ENV.fetch('REDIS_NAMESPACE', nil)
 cache_namespace   = namespace ? "#{namespace}_cache" : 'cache'
@@ -43,4 +44,9 @@ REDIS_SIDEKIQ_PARAMS = {
   driver: :hiredis,
   url: ENV['SIDEKIQ_REDIS_URL'],
   namespace: sidekiq_namespace,
+}.freeze
+
+REDIS_TIMELINES_PARAMS = {
+  driver: :hiredis,
+  url: ENV['TIMELINE_REDIS_URL'],
 }.freeze

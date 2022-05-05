@@ -8,6 +8,7 @@ class Api::V1::MediaController < Api::BaseController
 
   def create
     @media_attachment = current_account.media_attachments.create!(media_attachment_params)
+    export_prometheus_metric
     render json: @media_attachment, serializer: REST::MediaAttachmentSerializer
   rescue Paperclip::Errors::NotIdentifiedByImageMagickError
     render json: file_type_error, status: 422
@@ -52,5 +53,9 @@ class Api::V1::MediaController < Api::BaseController
 
   def processing_error
     { error: 'Error processing thumbnail for uploaded media' }
+  end
+
+  def export_prometheus_metric
+    Prometheus::ApplicationExporter::increment(:media_uploads, {type: @media_attachment.type})
   end
 end

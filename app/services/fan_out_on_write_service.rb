@@ -7,8 +7,9 @@ class FanOutOnWriteService < BaseService
     raise Mastodon::RaceConditionError if status.visibility.nil?
 
     deliver_to_self(status) if status.account.local?
-
-    if status.direct_visibility?
+    if status.account.whale?
+      deliver_to_whale_feed(status)
+    elsif status.direct_visibility?
       deliver_to_mentioned_followers(status)
       deliver_to_own_conversation(status)
     elsif status.limited_visibility?
@@ -26,8 +27,6 @@ class FanOutOnWriteService < BaseService
 
     return if status.reply? && status.in_reply_to_account_id != status.account_id
 
-    deliver_to_public(status)
-    deliver_to_media(status) if status.media_attachments.any?
   end
 
   private
@@ -67,6 +66,12 @@ class FanOutOnWriteService < BaseService
     end
   end
 
+
+  def deliver_to_whale_feed(status)
+    Rails.logger.info "Delivering status #{status.id} to whale feed"
+    WhaleFeedWorker.perform_async(status.id)
+  end
+
   def render_anonymous_payload(status)
     @payload = InlineRenderer.render(status, nil, :status)
     @payload = Oj.dump(event: :update, payload: @payload)
@@ -78,28 +83,6 @@ class FanOutOnWriteService < BaseService
     status.tags.pluck(:name).each do |hashtag|
       Redis.current.publish("timeline:hashtag:#{hashtag.mb_chars.downcase}", @payload)
       Redis.current.publish("timeline:hashtag:#{hashtag.mb_chars.downcase}:local", @payload) if status.local?
-    end
-  end
-
-  def deliver_to_public(status)
-    Rails.logger.debug "Delivering status #{status.id} to public timeline"
-
-    Redis.current.publish('timeline:public', @payload)
-    if status.local?
-      Redis.current.publish('timeline:public:local', @payload)
-    else
-      Redis.current.publish('timeline:public:remote', @payload)
-    end
-  end
-
-  def deliver_to_media(status)
-    Rails.logger.debug "Delivering status #{status.id} to media timeline"
-
-    Redis.current.publish('timeline:public:media', @payload)
-    if status.local?
-      Redis.current.publish('timeline:public:local:media', @payload)
-    else
-      Redis.current.publish('timeline:public:remote:media', @payload)
     end
   end
 

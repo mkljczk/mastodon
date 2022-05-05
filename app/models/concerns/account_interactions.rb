@@ -271,6 +271,10 @@ module AccountInteractions
     end
   end
 
+  def whale_following
+    following.where(whale: true)
+  end
+
   private
 
   def remove_potential_friendship(other_account, mutual = false)

@@ -1,17 +1,31 @@
 # frozen_string_literal: true
 
 class NotifyService < BaseService
+  include NotifyConcern
+
+  GROUP_NOTIFICATION_TYPES = %i(
+    mention
+    reblog
+    follow
+    favourite
+  ).freeze
+
   def call(recipient, type, activity)
     @recipient    = recipient
     @activity     = activity
     @notification = Notification.new(account: @recipient, type: type, activity: @activity)
-
     return if recipient.user.nil? || blocked?
 
+    @target_status = @notification.target_status
+    if group_notification?
+      group_notifications_service.call(recipient.id, @notification.from_account_id, type, @target_status)
+      return false
+    end
+
     create_notification!
-    push_notification!
+    push_notification!(@notification, @recipient)
     push_to_conversation! if direct_message?
-    send_email! if email_enabled?
+    send_email! if email_enabled? && !verify_sms_prompt?
   rescue ActiveRecord::RecordInvalid
     nil
   end
@@ -71,6 +85,10 @@ class NotifyService < BaseService
     @notification.type == :user_approved
   end
 
+  def verify_sms_prompt?
+    @notification.type == :verify_sms_prompt
+  end
+
   def direct_message?
     message? && @notification.target_status.direct_visibility?
   end
@@ -103,7 +121,7 @@ class NotifyService < BaseService
   end
 
   def blocked?
-    return false if invite? || user_approved?                    # Skip if invite or user_approved notification
+    return false if invite? || user_approved? || verify_sms_prompt? # Skip if invite or user_approved or verify_sms_prompt notification
 
     blocked   = @recipient.suspended?                            # Skip if the recipient account is suspended anyway
     blocked ||= from_self? && @notification.type != :poll        # Skip for interactions with self
@@ -134,44 +152,9 @@ class NotifyService < BaseService
     @notification.save!
   end
 
-  def push_notification!
-    return if @notification.activity.nil?
-
-    Redis.current.publish("timeline:#{@recipient.id}", Oj.dump(event: :notification, payload: InlineRenderer.render(@notification, @recipient, :notification)))
-    send_push_notifications!
-  end
-
   def push_to_conversation!
     return if @notification.activity.nil?
     AccountConversation.add_status(@recipient, @notification.target_status)
-  end
-
-  def send_push_notifications!
-    subscriptions = ::Web::PushSubscription.where(user_id: @recipient.user.id)
-                                           .select { |subscription| subscription.pushable?(@notification) }
-
-    web_subscription_ids = []
-    mobile_subscription_ids = []
-
-    subscriptions.each do |sub|
-      if [1, 2].include?(sub.platform)
-        mobile_subscription_ids << sub.id
-      else
-        web_subscription_ids << sub.id
-      end
-    end
-
-    if web_subscription_ids.any?
-      ::Web::PushNotificationWorker.push_bulk(web_subscription_ids) do |subscription_id|
-        [subscription_id, @notification.id]
-      end
-    end
-
-    if mobile_subscription_ids.any?
-      ::Mobile::PushNotificationWorker.push_bulk(mobile_subscription_ids) do |subscription_id|
-        [subscription_id, @notification.id]
-      end
-    end
   end
 
   def send_email!
@@ -182,5 +165,39 @@ class NotifyService < BaseService
 
   def email_enabled?
     @recipient.user.settings.notification_emails[@notification.type.to_s]
+  end
+
+  def group_notification?
+    return unless (GROUP_NOTIFICATION_TYPES.include? @notification.type) && @recipient.whale?
+    if @notification.type == :mention
+      return unless @target_status.reply?
+
+      if (!(@target_status = whale_thread))
+        return false
+      end
+
+    elsif @notification.type == :follow
+      @target_status = nil
+    end
+
+    true
+  end
+
+  def whale_thread
+    if @target_status&.thread&.account_id == @recipient.id && @target_status&.thread&.reply? == false
+      return @target_status.thread
+    end
+
+    root_status = Status.with_discarded.select("*").from(Status.where(conversation_id: @target_status.conversation_id)&.reorder(id: :desc)).reorder(id: :asc)&.first
+
+    if root_status&.account_id == @recipient.id
+      return root_status
+    end
+
+    false
+  end
+
+  def group_notifications_service
+    GroupNotificationsService.new
   end
 end

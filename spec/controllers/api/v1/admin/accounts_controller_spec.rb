@@ -71,11 +71,50 @@ RSpec.describe Api::V1::Admin::AccountsController, type: :controller do
     end
   end
 
+  describe 'PATCH #update' do
+    let(:user1) { Fabricate(:user, sms: nil, approved: false, ready_to_approve: 2 ) }
+    let(:account1) { user1.account }
+    let(:sms) { '123123123' }
+
+    before do
+      patch :update, params: { id: account1.id, sms: sms }
+    end
+
+    it_behaves_like 'forbidden for wrong scope', 'write:statuses'
+    it_behaves_like 'forbidden for wrong role', 'user'
+
+    context 'with a user that is ready_to_approve' do
+      let(:user1) { Fabricate(:user, sms: nil, approved: false, ready_to_approve: 2 ) }
+      let(:account1) { user1.account }
+
+      it 'returns http success' do
+        expect(response).to have_http_status(200)
+      end
+
+      it 'updates the users sms record and sets them to approved' do
+        u = User.find user1.id
+        expect(u.sms).to eq(sms)
+        expect(u.approved).to eq(true)
+      end
+    end
+
+    context 'with a user that is not ready_to_approve' do
+      let(:user1) { Fabricate(:user, sms: nil, approved: false, ready_to_approve: 0 ) }
+      let(:account1) { user1.account }
+
+      it 'updates the users sms record' do
+        u = User.find user1.id
+        expect(u.sms).to eq(sms)
+        expect(u.approved).to eq(false)
+      end
+    end
+  end
+
   describe 'POST #create' do
     let(:approved) { true }
     let(:verified) { false }
 
-    context 'approved param included' do
+    context 'approved param included and role is moderator' do
       before do
         post(
           :create,
@@ -99,6 +138,12 @@ RSpec.describe Api::V1::Admin::AccountsController, type: :controller do
         expect(ActionMailer::Base.deliveries.count).to eq(1)
         expect(ActionMailer::Base.deliveries[0].subject).to eq(I18n.t('notification_mailer.user_approved.web.subject'))
       end
+
+      it 'marks moderators as undiscoverable' do
+        account = Account.ci_find_by_username('bob')
+
+        expect(account.discoverable).to be false
+      end
     end
 
     context 'approved param not included' do
@@ -111,7 +156,7 @@ RSpec.describe Api::V1::Admin::AccountsController, type: :controller do
             verified: verified,
             email: 'bob@example.com',
             password: '12345678',
-            role: 'moderator'
+            role: 'user'
           }
         )
       end
@@ -123,6 +168,45 @@ RSpec.describe Api::V1::Admin::AccountsController, type: :controller do
       it 'sends a Waitlisted email' do
         expect(ActionMailer::Base.deliveries.count).to eq(1)
         expect(ActionMailer::Base.deliveries[0].subject).to eq(I18n.t('user_mailer.waitlisted.title'))
+      end
+
+      it 'marks non-moderators as discoverable' do
+        account = Account.ci_find_by_username('bob')
+
+        expect(account.discoverable).to be true
+      end
+    end
+
+    context 'approved param included set to false' do
+      let(:user_46) { Fabricate(:user, approved: false ) }
+      before do
+        user_46
+        post(
+          :create,
+          params: {
+            username: 'bob',
+            sms: '234-555-2344',
+            verified: verified,
+            email: 'bob@example.com',
+            password: '12345678',
+            role: 'moderator',
+            approved: 'false'
+          }
+        )
+      end
+
+      it 'returns http success' do
+        expect(response).to have_http_status(200)
+      end
+
+      it 'sends a Waitlisted email' do
+        expect(ActionMailer::Base.deliveries.count).to eq(1)
+        expect(ActionMailer::Base.deliveries[0].subject).to eq(I18n.t('user_mailer.waitlisted.title'))
+      end
+
+      it 'sets the users waitlist position' do
+        user = User.find_by(email: 'bob@example.com')
+        expect(user.waitlist_position).to eq(11343) 
       end
     end
 

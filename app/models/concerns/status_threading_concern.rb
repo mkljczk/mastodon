@@ -2,13 +2,14 @@
 
 module StatusThreadingConcern
   extend ActiveSupport::Concern
+  include Redisable
 
   def ancestors(limit, account = nil)
     find_statuses_from_tree_path(ancestor_ids(limit), account)
   end
 
-  def descendants(limit, account = nil, max_child_id = nil, since_child_id = nil, depth = nil)
-    find_statuses_from_tree_path(descendant_ids(limit, max_child_id, since_child_id, depth), account, promote: true)
+  def descendants(limit, account = nil, offset = 0, max_child_id = nil, since_child_id = nil, depth = nil)
+    find_statuses_from_tree_path(descendant_ids(limit, offset, max_child_id, since_child_id, depth), account, promote: true)
   end
 
   def self_replies(limit)
@@ -50,16 +51,25 @@ module StatusThreadingConcern
     SQL
   end
 
-  def descendant_ids(limit, max_child_id, since_child_id, depth)
-    descendant_statuses(limit, max_child_id, since_child_id, depth).pluck(:id)
+  def descendant_ids(limit, offset, max_child_id, since_child_id, depth)
+    key = "descendants:#{conversation_id}"
+    field = "#{id}:#{limit}:#{offset}"
+    if (cached_descendants = get_descendants_from_cache(key, field))
+      cached_descendants
+    else
+      ids =  descendant_statuses(limit, offset, max_child_id, since_child_id, depth).pluck(:id)
+      redis.hset(key, field, ids.to_json)
+      redis.expire(key, 1.hour.seconds)
+      ids
+    end
   end
 
-  def descendant_statuses(limit, max_child_id, since_child_id, depth)
+  def descendant_statuses(limit, offset, max_child_id, since_child_id, depth)
     # use limit + 1 and depth + 1 because 'self' is included
     depth += 1 if depth.present?
-    limit += 1 if limit.present?
+    offset += 1 if offset.present?
 
-    descendants_with_self = Status.find_by_sql([<<-SQL.squish, id: id, limit: limit, max_child_id: max_child_id, since_child_id: since_child_id, depth: depth])
+    descendants_with_self = Status.find_by_sql([<<-SQL.squish, id: id, limit: limit, offset: offset, max_child_id: max_child_id, since_child_id: since_child_id, depth: depth])
       WITH RECURSIVE search_tree(id, path)
       AS (
         SELECT id, ARRAY[id]
@@ -74,10 +84,11 @@ module StatusThreadingConcern
       SELECT id
       FROM search_tree
       ORDER BY path
+      OFFSET :offset
       LIMIT :limit
     SQL
 
-    descendants_with_self - [self]
+    descendants_with_self
   end
 
   def find_statuses_from_tree_path(ids, account, promote: false)
@@ -124,5 +135,18 @@ module StatusThreadingConcern
       following: Account.following_map(account_ids, account.id),
       domain_blocking_by_domain: Account.domain_blocking_map_by_domain(domains, account.id),
     }
+  end
+
+  def get_descendants_from_cache(key, field)
+    cached_descendants_raw = redis.hget(key, field)
+
+    return if cached_descendants_raw.nil?
+
+    begin
+      parsed = JSON.parse(cached_descendants_raw)
+      parsed.is_a?(Array) ? parsed : false
+    rescue JSON::ParserError
+      false
+    end
   end
 end

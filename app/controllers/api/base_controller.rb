@@ -17,7 +17,26 @@ class Api::BaseController < ApplicationController
   skip_around_action :set_locale
 
   rescue_from ActiveRecord::RecordInvalid, Mastodon::ValidationError do |e|
-    render json: { error: e.to_s }, status: 422
+    errror_message = e.to_s
+    if params[:controller] == 'api/v1/admin/accounts' && params[:action] == 'create'
+      filters = Rails.application.config.filter_parameters
+      f = ActiveSupport::ParameterFilter.new filters
+      filtered_params = f.filter params
+
+      Rails.logger.info("Unsuccessful registration: #{errror_message}.  params: #{filtered_params}")
+    end
+
+    response = { error: errror_message }
+
+    # Output an errorCode key w/ value instead of shoving it into one giant string in the error key
+    # Usage: object.errors.add(:errorCode, 'machine_readable_text')
+    if (errror_message.include?('Errorcode'))
+      message = errror_message.split(', Errorcode ')
+      formatted_readable_message = message[0].sub('Validation failed: ', '')
+      response = { error: formatted_readable_message, errorCode: message[1] }
+    end
+
+    render json: response, status: 422
   end
 
   rescue_from ActiveRecord::RecordNotUnique do
@@ -40,11 +59,13 @@ class Api::BaseController < ApplicationController
     render json: { error: 'This action is not allowed' }, status: 403
   end
 
-  rescue_from Mastodon::RaceConditionError, Seahorse::Client::NetworkingError, Stoplight::Error::RedLight do
+  rescue_from Mastodon::RaceConditionError, Seahorse::Client::NetworkingError, Stoplight::Error::RedLight do |e|
+    Rails.logger.info("Network error: #{e.message} #{request.remote_ip} #{request.request_method} #{request.fullpath} #{current_user.id}") if e.class == Seahorse::Client::NetworkingError
     render json: { error: 'There was a temporary problem serving your request, please try again' }, status: 503
   end
 
-  rescue_from Mastodon::RateLimitExceededError do
+  rescue_from Mastodon::RateLimitExceededError do |e|
+    Rails.logger.info("#{e.message} #{request.remote_ip} #{request.request_method} #{request.fullpath} #{current_user.id}")
     render json: { error: I18n.t('errors.429') }, status: 429
   end
 

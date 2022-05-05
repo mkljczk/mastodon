@@ -2,7 +2,7 @@
 
 module UserTrackingConcern
   extend ActiveSupport::Concern
-
+  TRACKED_CONTROLLERS = %w(home credentials)
   UPDATE_SIGN_IN_HOURS = 24
 
   included do
@@ -16,6 +16,6 @@ module UserTrackingConcern
   end
 
   def user_needs_sign_in_update?
-    user_signed_in? && (current_user.current_sign_in_at.nil? || current_user.current_sign_in_at < UPDATE_SIGN_IN_HOURS.hours.ago)
+    TRACKED_CONTROLLERS.include?(controller_name) && user_signed_in? && (current_user.current_sign_in_at.nil? || current_user.current_sign_in_at < UPDATE_SIGN_IN_HOURS.hours.ago)
   end
 end

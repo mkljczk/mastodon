@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require "./lib/proto/serializers/card_created_event.rb"
+require "./lib/proto/serializers/card_joined_event.rb"
 
 class FetchLinkCardService < BaseService
   URL_PATTERN = %r{
@@ -44,19 +44,20 @@ class FetchLinkCardService < BaseService
 
     if @card&.persisted?
       attach_card
-      publish_card_event
+      publish_card_joined_event
     end
+
   rescue HTTP::Error, OpenSSL::SSL::SSLError, Addressable::URI::InvalidURIError, Mastodon::HostValidationError, Mastodon::LengthValidationError => e
-    Rails.logger.debug "Error fetching link #{@url}: #{e}"
+    Rails.logger.info "Error fetching link #{@url}: #{e}"
     nil
   end
 
   private
 
-  def publish_card_event
+  def publish_card_joined_event
     Redis.current.publish(
-      CardCreatedEvent::EVENT_KEY,
-      CardCreatedEvent.new(@card).serialize
+      CardJoinedEvent::EVENT_KEY,
+      CardJoinedEvent.new(@card).serialize
     )
   end
 

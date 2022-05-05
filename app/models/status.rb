@@ -43,7 +43,7 @@ class Status < ApplicationRecord
   # will be based on current time instead of `created_at`
   attr_accessor :override_timestamps
 
-  update_index('statuses#status', :proper)
+  update_index 'statuses#status', :proper, unless: -> { reblog? }
 
   enum visibility: [:public, :unlisted, :private, :direct, :limited], _suffix: :visibility
 
@@ -305,7 +305,7 @@ class Status < ApplicationRecord
 
       cached_items.each do |item|
         account_ids << item.account_id
-        account_ids << item.reblog.account_id if item.reblog?
+        account_ids << item.reblog.account_id if item.reblog? && item.reblog&.account_id
       end
 
       account_ids.uniq!
@@ -316,7 +316,7 @@ class Status < ApplicationRecord
 
       cached_items.each do |item|
         item.account = accounts[item.account_id]
-        item.reblog.account = accounts[item.reblog.account_id] if item.reblog?
+        item.reblog.account = accounts[item.reblog.account_id] if item.reblog? && item.reblog&.account_id
       end
     end
 
@@ -400,6 +400,7 @@ class Status < ApplicationRecord
     if reply? && !thread.nil?
       self.in_reply_to_account_id = carried_over_reply_to_account_id
       self.conversation_id        = thread.conversation_id if conversation_id.nil?
+      redis.del("descendants:#{conversation_id}")
     elsif conversation_id.nil?
       self.conversation = Conversation.new
     end

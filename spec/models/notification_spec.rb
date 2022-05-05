@@ -66,6 +66,11 @@ RSpec.describe Notification, type: :model do
       notification = Notification.new(activity: User.new)
       expect(notification.type).to eq :user_approved
     end
+
+    it 'returns :verify_sms_prompt' do
+      notification = Notification.new(activity: User.new, type: 'verify_sms_prompt')
+      expect(notification.type).to eq :verify_sms_prompt
+    end
   end
 
   describe '.preload_cache_collection_target_statuses' do
@@ -110,6 +115,7 @@ RSpec.describe Notification, type: :model do
           Fabricate(:notification, type: :poll, activity: poll),
           Fabricate(:notification, type: :invite, activity: invite),
           Fabricate(:notification, type: :user_approved, activity: user),
+          Fabricate(:notification, type: :verify_sms_prompt, activity: user),
         ]
       end
 
@@ -153,6 +159,10 @@ RSpec.describe Notification, type: :model do
         # user_approved
         expect(subject[8].type).to eq :user_approved
         expect(subject[8].association(:user)).to be_loaded
+
+        # verify_sms_prompt
+        expect(subject[9].type).to eq :verify_sms_prompt
+        expect(subject[9].association(:user)).to be_loaded
       end
 
       it 'replaces to cached status' do

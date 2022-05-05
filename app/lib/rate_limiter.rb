@@ -35,7 +35,7 @@ class RateLimiter
       redis.expire(key, (@period - (last_epoch_time % @period) + 1).to_i)
     end
 
-    raise Mastodon::RateLimitExceededError if count.present? && count.to_i >= @limit && ENV['SKIP_IP_RATE_LIMITING'] != 'true'
+    raise Mastodon::RateLimitExceededError, "Rate limit hit by RateLimiter #{@family}" if count.present? && count.to_i >= @limit && ENV['SKIP_IP_RATE_LIMITING'] != 'true'
 
     redis.incr(key)
   end

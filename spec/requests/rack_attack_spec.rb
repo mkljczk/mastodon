@@ -31,7 +31,7 @@ RSpec.describe 'Rack::Attack', type: :request do
       end
 
       it 'it returns http unauthorized' do
-        expect(response).to have_http_status(401)
+        expect(response).to have_http_status(403)
       end
     end
 
@@ -55,7 +55,7 @@ RSpec.describe 'Rack::Attack', type: :request do
       end
 
       it 'it doesnt limit' do
-        expect(response).to have_http_status(401)
+        expect(response).to have_http_status(403)
       end
     end
 
@@ -70,7 +70,7 @@ RSpec.describe 'Rack::Attack', type: :request do
 
         travel_to(10.minutes.from_now) do
           get api_v1_timelines_home_path, headers: headers
-          expect(response).to have_http_status(401)
+          expect(response).to have_http_status(403)
         end
       end
     end
@@ -174,7 +174,7 @@ RSpec.describe 'Rack::Attack', type: :request do
 
       it 'it returns http bad request for /api/v1/emails/confirmation' do
         post api_v1_emails_confirmations_path, headers: headers
-        expect(response).to have_http_status(401)
+        expect(response).to have_http_status(403)
       end
 
       it 'it returns http bad request for /api/v1/truth/email/confirm' do

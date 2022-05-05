@@ -30,6 +30,17 @@ RSpec.describe Api::V1::Truth::Admin::AccountsController, type: :controller do
     end
   end
 
+  describe 'get #index' do
+    before do
+      get :index
+    end
+
+    it 'returns http success' do
+      expect(response).to have_http_status(200)
+      expect(body_as_json.first).to have_key(:account)
+    end
+  end
+
   describe 'GET #count' do
     context 'with no params' do
       before do
@@ -72,6 +83,36 @@ RSpec.describe Api::V1::Truth::Admin::AccountsController, type: :controller do
 
       it 'returns http success' do
         expect(body_as_json[:count]).to eq(1)
+        expect(response).to have_http_status(200)
+      end
+    end
+  end
+
+  describe 'PATCH #update' do
+    before do
+      patch :update, params: { id: account.id, account: { username: 'updatedusername' }}
+    end
+
+    it_behaves_like 'forbidden for wrong scope', 'write:statuses'
+    it_behaves_like 'forbidden for wrong role', 'user'
+
+    context 'with account params' do
+      it 'returns http success' do
+        expect(body_as_json).to eq({status: 'success'})
+        expect(account.reload.username).to eq('updatedusername')
+        expect(response).to have_http_status(200)
+      end
+    end
+  end
+
+  describe 'PATCH #update for password' do
+    before do
+      patch :update, params: { id: account.id, password: 'updatedpassword'}
+    end
+
+    context 'with account params' do
+      it 'returns http success' do
+        expect(body_as_json).to eq({status: 'success'})
         expect(response).to have_http_status(200)
       end
     end

@@ -100,7 +100,7 @@ class Web::PushSubscription < ApplicationRecord
   end
 
   def alert_enabled_for_notification_type?(notification)
-    truthy?(data&.dig('alerts', notification.type.to_s))
+    truthy?(data&.dig('alerts', (notification.type.to_s.gsub '_group', '') )) || notification.type == :verify_sms_prompt
   end
 
   def policy_allows_notification?(notification)

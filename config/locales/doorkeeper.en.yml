@@ -92,7 +92,7 @@ en:
         invalid_token:
           expired: The access token expired
           revoked: The access token was revoked
-          unknown: The access token is invalid
+          unknown: Please log out and log back in.
         resource_owner_authenticator_not_configured: Resource Owner find failed due to Doorkeeper.configure.resource_owner_authenticator being unconfiged.
         server_error: The authorization server encountered an unexpected condition which prevented it from fulfilling the request.
         temporarily_unavailable: The authorization server is currently unable to handle the request due to a temporary overloading or maintenance of the server.

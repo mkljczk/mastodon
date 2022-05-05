@@ -32,7 +32,7 @@ class REST::InstanceSerializer < ActiveModel::Serializer
   end
 
   def version
-    Mastodon::Version.to_s
+    "#{Mastodon::Version} (compatible; TruthSocial 1.0.0)"
   end
 
   def thumbnail

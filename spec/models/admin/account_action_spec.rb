@@ -128,15 +128,15 @@ RSpec.describe Admin::AccountAction, type: :model do
         end
       end
 
-      it 'bans when strikes have been exceeded' do
-        allow(AccountSuspensionPolicy).to receive(:new).and_return(double(strikes_expended?: true))
-        Sidekiq::Testing.inline! do
-          subject
-        end
+      # it 'bans when strikes have been exceeded' do
+      #   allow(AccountSuspensionPolicy).to receive(:new).and_return(double(strikes_expended?: true))
+      #   Sidekiq::Testing.inline! do
+      #     subject
+      #   end
 
-        expect(target_account.reload).to be_suspended
-        expect(target_account.user).to be_disabled
-      end
+      #   expect(target_account.reload).to be_suspended
+      #   expect(target_account.user).to be_disabled
+      # end
     end
 
     it 'creates Admin::ActionLog' do

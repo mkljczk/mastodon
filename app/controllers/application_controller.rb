@@ -116,6 +116,7 @@ class ApplicationController < ActionController::Base
   end
 
   def too_many_requests
+    Rails.logger.info("#{e.message} #{request.remote_ip} #{request.request_method} #{request.fullpath} #{current_user.id}")
     respond_with_error(429)
   end
 

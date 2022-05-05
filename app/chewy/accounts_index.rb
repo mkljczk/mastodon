@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class AccountsIndex < Chewy::Index
-  settings index: { refresh_interval: '5m' }, analysis: {
+  settings index: { refresh_interval: '5m' }, number_of_shards: '12', analysis: {
     analyzer: {
       content: {
         tokenizer: 'whitespace',

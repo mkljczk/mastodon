@@ -9,13 +9,15 @@ class AccountSuggestions::GlobalSource < AccountSuggestions::Source
     account_ids = account_ids_for_locale(account.user_locale) - [account.id] - skip_account_ids
 
     as_ordered_suggestions(
-      scope(account).where(id: account_ids),
+      scope(account).where.not(id: prevented_suggestions(account.id)).where(id: account_ids),
       account_ids
     ).take(limit)
   end
 
-  def remove(_account, _target_account_id)
-    nil
+  def remove(account, target_account_id)
+    redis_key = "prevent_suggestion:#{account.id}"
+    Redis.current.sadd(redis_key, target_account_id)
+    Redis.current.expire(redis_key, 90.days.seconds)
   end
 
   private
@@ -25,6 +27,11 @@ class AccountSuggestions::GlobalSource < AccountSuggestions::Source
            .followable_by(account)
            .not_excluded_by_account(account)
            .not_domain_blocked_by_account(account)
+  end
+
+  def prevented_suggestions(account_id)
+    redis_key = "prevent_suggestion:#{account_id}"
+    Redis.current.smembers(redis_key)
   end
 
   def account_ids_for_locale(locale)

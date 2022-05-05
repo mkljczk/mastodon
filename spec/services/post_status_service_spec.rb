@@ -155,6 +155,10 @@ RSpec.describe PostStatusService, type: :service do
   end
 
   it 'gets distributed' do
+    post_distribution_service = double(:post_distribution_service)
+    allow(post_distribution_service).to receive(:call)
+    allow(PostDistributionService).to receive(:new).and_return(post_distribution_service)
+
     allow(DistributionWorker).to receive(:perform_async)
     allow(ActivityPub::DistributionWorker).to receive(:perform_async)
 
@@ -162,7 +166,7 @@ RSpec.describe PostStatusService, type: :service do
 
     status = subject.call(account, text: "test status update")
 
-    expect(DistributionWorker).to have_received(:perform_async).with(status.id)
+    expect(post_distribution_service).to have_received(:call).with(status)
     # expect(ActivityPub::DistributionWorker).to have_received(:perform_async).with(status.id)
   end
 

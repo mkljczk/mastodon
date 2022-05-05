@@ -21,6 +21,8 @@ describe UserSettingsDecorator do
       expect(user.settings['interactions']['must_be_follower']).to eq false
     end
 
+    # TODO: @features use_pending_items if this user feature is re-enabled
+    # update the expectation of this test
     it 'does not update the user settings value for use_pending_items' do
       values = { 'use_pending_items' => false }
 
@@ -35,6 +37,7 @@ describe UserSettingsDecorator do
       expect(user.settings['default_privacy']).to eq 'public'
     end
 
+    # TODO: features default_sensitive
     it 'does not update the user settings value for sensitive as this is not user configurable' do
       values = { 'setting_default_sensitive' => '1' }
 
@@ -49,6 +52,7 @@ describe UserSettingsDecorator do
       expect(user.settings['unfollow_modal']).to eq false
     end
 
+    # TODO: features boost_modal
     it 'does not update the user settings value for boost modal as it is not user configurable' do
       values = { 'setting_boost_modal' => '1' }
 
@@ -56,6 +60,7 @@ describe UserSettingsDecorator do
       expect(user.settings['boost_modal']).to eq false
     end
 
+    # TODO: features delete_modal
     it 'does not update the user settings value for delete toot modal as this is not user configurable' do
       expect(user.settings['delete_modal']).to eq true
       values = { 'setting_delete_modal' => '0' }
@@ -76,6 +81,18 @@ describe UserSettingsDecorator do
 
       settings.update(values)
       expect(user.settings['system_font_ui']).to eq false
+    end
+
+    # TODO: features delete_modal boost_modal
+    xit 'decoerces setting values before applying' do
+      values = {
+        'setting_delete_modal' => 'false',
+        'setting_boost_modal' => 'true',
+      }
+
+      settings.update(values)
+      expect(user.settings['delete_modal']).to eq false
+      expect(user.settings['boost_modal']).to eq true
     end
   end
 end

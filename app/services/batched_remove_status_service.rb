@@ -77,14 +77,6 @@ class BatchedRemoveStatusService < BaseService
 
     payload = Oj.dump(event: :delete, payload: status.id.to_s)
 
-    redis.publish('timeline:public', payload)
-    redis.publish(status.local? ? 'timeline:public:local' : 'timeline:public:remote', payload)
-
-    if status.media_attachments.any?
-      redis.publish('timeline:public:media', payload)
-      redis.publish(status.local? ? 'timeline:public:local:media' : 'timeline:public:remote:media', payload)
-    end
-
     status.tags.map { |tag| tag.name.mb_chars.downcase }.each do |hashtag|
       redis.publish("timeline:hashtag:#{hashtag}", payload)
       redis.publish("timeline:hashtag:#{hashtag}:local", payload) if status.local?

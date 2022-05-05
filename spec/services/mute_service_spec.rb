@@ -14,6 +14,7 @@ RSpec.describe MuteService, type: :service do
     let(:home_timeline_key) { FeedManager.instance.key(:home, account.id) }
 
     before do
+      allow_any_instance_of(Redisable).to receive(:redis_timelines).and_return(Redis.current)
       Redis.current.del(home_timeline_key)
     end
 

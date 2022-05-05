@@ -12,6 +12,7 @@ const url = require('url');
 const uuid = require('uuid');
 const fs = require('fs');
 const WebSocket = require('ws');
+const LosslessJSON = require('lossless-json');
 
 const env = process.env.NODE_ENV || 'development';
 const alwaysRequireAuth = process.env.LIMITED_FEDERATION_MODE === 'true' || process.env.WHITELIST_MODE === 'true' || process.env.AUTHORIZED_FETCH === 'true';
@@ -784,11 +785,23 @@ const startWorker = (workerId) => {
   const channelNameToIds = (req, name, params) => new Promise((resolve, reject) => {
     switch(name) {
     case 'user':
-      resolve({
-        channelIds: req.deviceId ? [`timeline:${req.accountId}`, `timeline:${req.accountId}:${req.deviceId}`] : [`timeline:${req.accountId}`],
-        options: { needsFiltering: false, notificationOnly: false },
-      });
+      const channelIds = req.deviceId ? [`timeline:${req.accountId}`, `timeline:${req.accountId}:${req.deviceId}`] : [`timeline:${req.accountId}`];
 
+      redisClient.get(`${redisPrefix}whale:following:${req.accountId}`, (err, res) => {
+        if (err === null && res !== null) {
+          try {
+            LosslessJSON.parse(res).forEach(whaleId => {
+              channelIds.push(`timeline:whale:${whaleId}`)
+            });
+          } catch (e) {
+            log.verbose(req.requestId, 'Parsing error:', e.toString());
+          }
+        }
+        resolve({
+          channelIds: channelIds,
+          options: { needsFiltering: false, notificationOnly: false },
+        });
+      });
       break;
     case 'user:notification':
       resolve({

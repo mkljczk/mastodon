@@ -38,7 +38,7 @@ production:
         url: postgresql://<%= ENV['DB_USER'] || 'truth' %>:<%= ENV['DB_PASS'] || '' %>@<%= ENV['DB_HOST'] || 'localhost' %>:<%= ENV['DB_PORT'] || 5432 %>/<%= ENV['DB_NAME'] || 'truth_production' %>
       - role: slave
         blacklist_duration: 0
-        url: postgresql://<%= ENV['DB_USER'] || 'truth' %>:<%= ENV['DB_PASS'] || '' %>@<%= ENV['DB_HOST_REPLICA'] || 'localhost' %>:<%= ENV['DB_PORT_REPLICA'] || 5432 %>/<%= ENV['DB_NAME'] || 'truth_production' %>
+        url: postgresql://<%= ENV['DB_USER'] || 'truth' %>:<%= ENV['DB_PASS'] || '' %>@<%= ENV['DB_HOST_REPLICA'] || 'localhost' %>:<%= ENV['DB_PORT_REPLICA'] || 5433 %>/<%= ENV['DB_NAME'] || 'truth_production' %>
 <% else %>
   database: <%= ENV['DB_NAME'] || 'truth_production' %>
   username: <%= ENV['DB_USER'] || 'truth' %>

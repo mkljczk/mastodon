@@ -13,9 +13,9 @@ RSpec.describe Api::V1::Announcements::ReactionsController, type: :controller do
 
   describe 'PUT #update' do
     context 'without token' do
-      it 'returns http unauthorized' do
+      it 'returns http forbidden' do
         put :update, params: { announcement_id: announcement.id, id: '😂' }
-        expect(response).to have_http_status :unauthorized
+        expect(response).to have_http_status :forbidden
       end
     end
 
@@ -41,9 +41,9 @@ RSpec.describe Api::V1::Announcements::ReactionsController, type: :controller do
     end
 
     context 'without token' do
-      it 'returns http unauthorized' do
+      it 'returns http forbidden' do
         delete :destroy, params: { announcement_id: announcement.id, id: '😂' }
-        expect(response).to have_http_status :unauthorized
+        expect(response).to have_http_status :forbidden
       end
     end
 

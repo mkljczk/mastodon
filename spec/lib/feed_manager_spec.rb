@@ -2,6 +2,7 @@ require 'rails_helper'
 
 RSpec.describe FeedManager do
   before do |example|
+    allow_any_instance_of(Redisable).to receive(:redis_timelines).and_return(Redis.current)
     acct = Fabricate(:account, username: "ModerationAI")
     Fabricate(:user, admin: true, account: acct)
     stub_request(:post, ENV["MODERATION_TASK_API_URL"]).to_return(status: 200, body: request_fixture('moderation-response-0.txt'))
@@ -203,6 +204,29 @@ RSpec.describe FeedManager do
       FeedManager.instance.push_to_home(account, status)
 
       expect(Redis.current.zcard("feed:home:#{account.id}")).to eq FeedManager::MAX_ITEMS
+    end
+
+    describe '#push_to_whale' do
+      it 'pushes a status to a whale list' do
+        account = Fabricate(:account)
+        status = Fabricate(:status, account: account)
+        expect(Redis.current.zcard("feed:whale:#{account.id}")).to eq 0
+        FeedManager.instance.push_to_whale(status)
+        expect(Redis.current.zcard("feed:whale:#{account.id}")).to eq 1
+      end
+    end
+
+    describe '#remove_from_whale' do
+      it 'removes a status from a whale list' do
+        account = Fabricate(:account)
+        status = Fabricate(:status, account: account)
+
+        Redis.current.zadd("feed:whale:#{account.id}", status.id, status.id)
+        expect(Redis.current.zcard("feed:whale:#{account.id}")).to eq 1
+
+        FeedManager.instance.remove_from_whale(status)
+        expect(Redis.current.zcard("feed:whale:#{account.id}")).to eq 0
+      end
     end
 
     context 'reblogs' do

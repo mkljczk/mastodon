@@ -104,6 +104,9 @@ RSpec.describe Auth::SessionsController, type: :controller do
 
       context 'using a valid password' do
         before do
+          user.update(sign_in_count: 5)
+          user.update(current_sign_in_at: 10.minutes.ago)
+
           post :create, params: { user: { email: user.email, password: user.password } }
         end
 
@@ -113,6 +116,10 @@ RSpec.describe Auth::SessionsController, type: :controller do
 
         it 'logs the user in' do
           expect(controller.current_user).to eq user
+        end
+
+        it 'it tracks sign in count' do
+          expect(user.reload.sign_in_count).to eq(6)
         end
       end
 

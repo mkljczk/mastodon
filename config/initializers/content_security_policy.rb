@@ -16,6 +16,15 @@ media_host ||= host_to_url(ENV['S3_CLOUDFRONT_HOST'])
 media_host ||= host_to_url(ENV['S3_HOSTNAME']) if ENV['S3_ENABLED'] == 'true'
 media_host ||= assets_host
 
+#TODO: refactor the maintenance of these URLs
+segment_base_url = 'https://cdn.segment.com'
+segment_api_url = 'https://api.segment.io'
+segment_script_hashes = ["'sha256-Kru1cRFDRjvkSX3GJVOzPMlesOJPlwl8Yf/vyxi7wnc='", 
+                         "'sha256-SkDGcKd1lxidykiwp0MQl3em4R4qTUyDCyVbFr52Qdo='", 
+                         "'sha256-CZKu4Ofm+PztnJbExQzfZGKk50F7ttkRpdQxduN4lCA='"
+                        ]
+
+
 Rails.application.config.content_security_policy do |p|
   p.base_uri        :none
   p.default_src     :none
@@ -30,13 +39,13 @@ Rails.application.config.content_security_policy do |p|
   if Rails.env.development?
     webpacker_urls = %w(ws http).map { |protocol| "#{protocol}#{Webpacker.dev_server.https? ? 's' : ''}://#{Webpacker.dev_server.host_with_port}" }
 
-    p.connect_src :self, :data, :blob, assets_host, media_host, Rails.configuration.x.streaming_api_base_url, *webpacker_urls
-    p.script_src  :self, :unsafe_inline, :unsafe_eval, assets_host
+    p.connect_src :self, :data, :blob, assets_host, media_host, Rails.configuration.x.streaming_api_base_url, segment_base_url, segment_api_url, *webpacker_urls
+    p.script_src  :self, :unsafe_inline, :unsafe_eval, assets_host, segment_base_url, segment_script_hashes.join(' ')
     p.child_src   :self, :blob, assets_host
     p.worker_src  :self, :blob, assets_host
   else
-    p.connect_src :self, :data, :blob, assets_host, media_host, Rails.configuration.x.streaming_api_base_url
-    p.script_src  :self, assets_host
+    p.connect_src :self, :data, :blob, assets_host, media_host, Rails.configuration.x.streaming_api_base_url, segment_base_url, segment_api_url
+    p.script_src  :self, assets_host, segment_base_url, segment_script_hashes.join(' ')
     p.child_src   :self, :blob, assets_host
     p.worker_src  :self, :blob, assets_host
   end

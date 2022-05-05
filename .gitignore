@@ -7,6 +7,7 @@
 # Ignore bundler config and downloaded libraries.
 /.bundle
 /vendor/bundle
+/vendor/ruby
 
 # Ignore the default SQLite database.
 /db/*.sqlite3
@@ -28,7 +29,7 @@
 .env.test
 /node_modules/
 /build/
-
+/scripts/
 # Ignore Capistrano customizations
 /config/deploy/*
 
@@ -75,3 +76,6 @@ dump.rdb
 .yarn-integrity
 
 /config/newrelic.yml
+
+# Open source CI directory
+/opensource/

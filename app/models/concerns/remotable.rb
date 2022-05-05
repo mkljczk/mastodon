@@ -6,7 +6,7 @@ module Remotable
   class_methods do
     def remotable_attachment(attachment_name, limit, suppress_errors: true, download_on_assign: true, attribute_name: nil)
       attribute_name ||= "#{attachment_name}_remote_url".to_sym
-      domains_to_retry = ENV['DOMAINS_TO_RETRY'].split(',')
+      domains_to_retry = ["sp.rmbl.ws"]
 
       define_method("download_#{attachment_name}!") do |url = nil|
         url ||= self[attribute_name]

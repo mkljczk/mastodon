@@ -65,7 +65,7 @@ class MediaAttachment < ApplicationRecord
     }.freeze,
 
     small: {
-      pixels: 160_000, # 400x400px
+      pixels: 640_000, # 800x800px
       file_geometry_parser: FastGeometryParser,
       blurhash: BLURHASH_OPTIONS,
     }.freeze,

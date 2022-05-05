@@ -2,6 +2,7 @@
 
 class UnfollowService < BaseService
   include Payloadable
+  include Redisable
 
   # Unfollow and notify the remote user
   # @param [Account] source_account Where to unfollow from
@@ -28,6 +29,8 @@ class UnfollowService < BaseService
     create_notification(follow) if !@target_account.local? && @target_account.activitypub?
     create_reject_notification(follow) if @target_account.local? && !@source_account.local? && @source_account.activitypub?
     UnmergeWorker.perform_async(@target_account.id, @source_account.id) unless @options[:skip_unmerge]
+
+    redis.del("whale:following:#{@source_account.id}") if @target_account.whale?
 
     follow
   end

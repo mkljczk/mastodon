@@ -14,7 +14,7 @@ class Api::V1::Admin::StatusesController < Api::BaseController
   end
 
   def show
-    render json: @status
+    render json: @status, serializer: REST::Admin::StatusSerializer
   end
 
   def sensitize
@@ -36,8 +36,9 @@ class Api::V1::Admin::StatusesController < Api::BaseController
   end
 
   def discard
+    @status.reblogs.update_all(deleted_at: Time.current, deleted_by_id: resource_params[:moderator_id])
     @status.update!(deleted_at: Time.current, deleted_by_id: resource_params[:moderator_id])
-    RemovalWorker.perform_async(@status.id, redraft: true, notify_user: resource_params[:notify_user])
+    RemovalWorker.perform_async(@status.id, redraft: true, notify_user: resource_params[:notify_user], immediate: false)
     @status.account.statuses_count = @status.account.statuses_count - 1
     @status.account.save
     render json: @status, serializer: REST::Admin::StatusSerializer, source_requested: true

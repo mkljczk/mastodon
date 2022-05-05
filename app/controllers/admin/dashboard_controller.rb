@@ -29,7 +29,7 @@ module Admin
       @saml_enabled          = ENV['SAML_ENABLED'] == 'true'
       @pam_enabled           = ENV['PAM_ENABLED'] == 'true'
       @hidden_service        = ENV['ALLOW_ACCESS_TO_HIDDEN_SERVICE'] == 'true'
-      @trending_hashtags     = TrendingTags.get(10, filtered: false)
+      @trending_hashtags     = TrendingTags.get(10)
       @pending_tags_count    = Tag.pending_review.count
       @authorized_fetch      = authorized_fetch_mode?
       @whitelist_enabled     = whitelist_mode?

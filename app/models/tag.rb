@@ -35,7 +35,7 @@ class Tag < ApplicationRecord
   scope :pending_review, -> { unreviewed.where.not(requested_review_at: nil) }
   scope :usable, -> { where(usable: [true, nil]) }
   scope :listable, -> { where(listable: [true, nil]) }
-  scope :trendable, -> { Setting.trendable_by_default ? where(trendable: [true, nil]) : where(trendable: true) }
+  scope :trendable, -> { where(trendable: true).order(last_status_at: :desc) }
   scope :recently_used, ->(account) { joins(:statuses).where(statuses: { id: account.statuses.select(:id).limit(1000) }).group(:id).order(Arel.sql('count(*) desc')) }
   scope :matches_name, ->(term) { where(arel_table[:name].lower.matches("#{sanitize_sql_like(Tag.normalize(term.downcase))}%", nil, true)) } # Search with case-sensitive to use B-tree index
 

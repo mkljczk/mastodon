@@ -9,24 +9,33 @@ class AccountSuggestions::SettingSource < AccountSuggestions::Source
     return [] unless setting_enabled?
 
     as_ordered_suggestions(
-      scope(account).where(setting_to_where_condition).where.not(id: skip_account_ids),
+      scope(account, skip_account_ids),
       usernames_and_domains
     ).take(limit)
   end
 
-  def remove(_account, _target_account_id)
-    nil
+  def total(account, skip_account_ids: [])
+    scope(account, skip_account_ids).length
+  end
+
+  def remove(account, target_account_id)
+    key = "prevent_suggestion:#{account.id}"
+    Redis.current.sadd(key, target_account_id)
+    Redis.current.expire(key, 90.days.seconds)
   end
 
   private
 
-  def scope(account)
+  def scope(account, skip_account_ids)
     Account.searchable
            .followable_by(account)
            .not_excluded_by_account(account)
            .not_domain_blocked_by_account(account)
            .where(locked: false)
            .where.not(id: account.id)
+           .where.not(id: prevented_suggestions(account.id))
+           .where(setting_to_where_condition)
+           .where.not(id: skip_account_ids)
   end
 
   def usernames_and_domains
@@ -35,6 +44,11 @@ class AccountSuggestions::SettingSource < AccountSuggestions::Source
 
   def setting_enabled?
     setting.present?
+  end
+
+  def prevented_suggestions(account_id)
+    key = "prevent_suggestion:#{account_id}"
+    Redis.current.smembers(key)
   end
 
   def setting_to_where_condition

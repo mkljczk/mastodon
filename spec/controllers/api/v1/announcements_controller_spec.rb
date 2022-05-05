@@ -33,9 +33,9 @@ RSpec.describe Api::V1::AnnouncementsController, type: :controller do
 
   describe 'POST #dismiss' do
     context 'without token' do
-      it 'returns http unauthorized' do
+      it 'returns http forbidden' do
         post :dismiss, params: { id: announcement.id }
-        expect(response).to have_http_status :unauthorized
+        expect(response).to have_http_status :forbidden
       end
     end
 

@@ -379,6 +379,8 @@ Rails.application.routes.draw do
 
         member do
           get :context
+          get 'context/ancestors', to: 'statuses#ancestors'
+          get 'context/descendants', to: 'statuses#descendants', as: 'descendants'
         end
       end
 
@@ -395,6 +397,7 @@ Rails.application.routes.draw do
         end
 
         namespace :admin do
+          resources :accounts, only: [:index, :update]
           scope :accounts do
             get :count, to: 'accounts#count'
           end
@@ -404,7 +407,7 @@ Rails.application.routes.draw do
           post :confirm, to: 'passwords#reset_confirm'
           post :request, to: 'passwords#reset_request'
         end
-        
+
         scope :email do
           get :confirm, to: 'emails#email_confirm'
         end
@@ -554,7 +557,7 @@ Rails.application.routes.draw do
           post :discard
         end
 
-        resources :accounts, only: [:index, :show, :create, :destroy] do
+        resources :accounts, only: [:index, :show, :create, :update, :destroy] do
           resources :follows, only: [:show], param: :target_account_id, controller: 'accounts/follows'
           collection do
             post :bulk_approve
@@ -566,6 +569,7 @@ Rails.application.routes.draw do
             post :unsuspend
             post :approve
             post :reject
+            post :verify
             post :unverify
             post :role
           end
@@ -588,7 +592,7 @@ Rails.application.routes.draw do
     namespace :v2 do
       resources :media, only: [:create]
       get '/search', to: 'search#index', as: :search
-      resources :suggestions, only: [:index]
+      resources :suggestions, only: [:index, :destroy]
     end
 
     namespace :web do

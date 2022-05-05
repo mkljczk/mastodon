@@ -3,7 +3,6 @@
 #
 # Table name: users
 #
-#  id                        :bigint(8)        not null, primary key
 #  email                     :string           default(""), not null
 #  created_at                :datetime         not null
 #  updated_at                :datetime         not null
@@ -31,6 +30,7 @@
 #  otp_backup_codes          :string           is an Array
 #  filtered_languages        :string           default([]), not null, is an Array
 #  account_id                :bigint(8)        not null
+#  id                        :bigint(8)        not null, primary key
 #  disabled                  :boolean          default(FALSE), not null
 #  moderator                 :boolean          default(FALSE), not null
 #  invite_id                 :bigint(8)
@@ -45,6 +45,7 @@
 #  sms                       :string
 #  waitlist_position         :integer
 #  unsubscribe_from_emails   :boolean          default(FALSE)
+#  ready_to_approve          :integer          default("not_ready_for_approval")
 #
 
 class User < ApplicationRecord
@@ -59,6 +60,7 @@ class User < ApplicationRecord
   # RegenerationWorker jobs that need to be run when those people come
   # to check their feed
   ACTIVE_DURATION = ENV.fetch('USER_ACTIVE_DAYS', 7).to_i.days.freeze
+  WAITLIST_PADDING = ENV.fetch('WAITLIST_PADDING', 50000).to_i
 
   devise :two_factor_authenticatable,
          otp_secret_encryption_key: Rails.configuration.x.otp_secret
@@ -104,6 +106,7 @@ class User < ApplicationRecord
   scope :recent, -> { order(id: :desc) }
   scope :pending, -> { where(approved: false) }
   scope :approved, -> { where(approved: true) }
+  scope :has_sms, -> { where.not(sms: nil) }
   scope :confirmed, -> { where.not(confirmed_at: nil) }
   scope :enabled, -> { where(disabled: false) }
   scope :disabled, -> { where(disabled: true) }
@@ -135,6 +138,9 @@ class User < ApplicationRecord
 
   attr_reader :invite_code, :sign_in_token_attempt
   attr_writer :external, :bypass_invite_request_check
+
+  enum ready_to_approve: { not_ready_for_approval: 0, ready_by_csv_import: 1, ready_by_sms_verification: 2, sent_one_push_notification: 3, sent_two_push_notifications: 4, sent_three_push_notifications: 5 }
+  self.ignored_columns = ["reviewed_for_approval"]
 
   def confirmed?
     confirmed_at.present?
@@ -187,22 +193,36 @@ class User < ApplicationRecord
   end
 
   def update_sign_in!(request, new_sign_in: false)
-    old_current = current_sign_in_at
-    new_current = Time.now.utc
-    self.last_sign_in_at     = old_current || new_current
-    self.current_sign_in_at  = new_current
+    old_current_sign_in = current_sign_in_at
+    new_current_sign_in = Time.now.utc
+    self.last_sign_in_at     = old_current_sign_in || new_current_sign_in
+    self.current_sign_in_at  = new_current_sign_in
 
-    old_current = current_sign_in_ip
-    new_current = request.remote_ip
-    self.last_sign_in_ip     = old_current || new_current
-    self.current_sign_in_ip  = new_current
+    old_current_ip = current_sign_in_ip
+    new_current_ip = request.remote_ip
+    self.last_sign_in_ip     = old_current_ip || new_current_ip
+    self.current_sign_in_ip  = new_current_ip
+
+    query = User.where(id: id)
 
     if new_sign_in
       self.sign_in_count ||= 0
       self.sign_in_count  += 1
+    else
+      query = if old_current_sign_in.nil?
+                query.where('current_sign_in_at' => nil)
+              else
+                query.where('current_sign_in_at < :time', time: UserTrackingConcern::UPDATE_SIGN_IN_HOURS.hours.ago)
+              end
     end
 
-    save(validate: false) unless new_record?
+    unless new_record?
+      query.update_all(last_sign_in_at: last_sign_in_at,
+                       current_sign_in_at: current_sign_in_at,
+                       last_sign_in_ip: last_sign_in_ip,
+                       current_sign_in_ip: current_sign_in_ip,
+                       sign_in_count: sign_in_count)
+    end
     prepare_returning_user!
   end
 
@@ -226,6 +246,10 @@ class User < ApplicationRecord
     !approved?
   end
 
+  def sms_verified?
+    sms.present?
+  end
+
   def active_for_authentication?
     !account.memorial?
   end
@@ -246,11 +270,12 @@ class User < ApplicationRecord
     !approved? ? :pending : super
   end
 
-  def approve!
-    return if approved?
+  def approve!(force = false)
+    return if approved? || (hourly_limit_reached? && !force)
 
     update!(approved: true)
     prepare_new_user!
+    track_approved_user
   end
 
   def otp_enabled?
@@ -278,8 +303,8 @@ class User < ApplicationRecord
   def set_waitlist_position
     return 0 if approved?
 
-    most_recent_user = User.pending.order(waitlist_position: :desc).offset(1).first
-    position = most_recent_user&.waitlist_position || 0
+    most_recent_user = User.pending.order(waitlist_position: :desc).first
+    position = most_recent_user&.waitlist_position || 11342 # this is a magic number means nothing could be anything
     self.waitlist_position = position + 1
 
     save!
@@ -289,11 +314,11 @@ class User < ApplicationRecord
   def get_position_in_waitlist_queue
     return 0 if approved?
 
-    first_user_in_waitlist = User.pending.order(waitlist_position: :asc).first
-    first_position = first_user_in_waitlist&.waitlist_position || 1
-    user_waitlist_position = waitlist_position || 0
+    # first_user_in_waitlist = User.pending.order(waitlist_position: :asc).first
+    # first_position = first_user_in_waitlist&.waitlist_position || 1
+    # user_waitlist_position = waitlist_position || 0
 
-    user_waitlist_position - first_position + 1
+    waitlist_position + WAITLIST_PADDING
   end
 
   def setting_default_privacy
@@ -424,6 +449,8 @@ class User < ApplicationRecord
     self.sign_in_token_sent_at = Time.now.utc
   end
 
+  # TODO: @features if we allow users to set chosen
+  # language in the future we should remove this.
   def chosen_languages
     nil
   end
@@ -542,5 +569,19 @@ class User < ApplicationRecord
     return unless saved_change_to_approved? && approved_previous_change == [false, true]
 
     NotifyService.new.call(account, :user_approved, self)
+  end
+
+  def hourly_limit_reached?
+    key = "approved_users_per_hour:#{DateTime.current.strftime("%Y-%m-%d:%H:00")}"
+    return unless (limit_per_hour = ENV['USERS_PER_HOUR'].to_i) > 0
+    current_limit = Redis.current.scard(key)
+    current_limit.present? && current_limit.to_i >= limit_per_hour
+  end
+
+  def track_approved_user
+    key = "approved_users_per_hour:#{DateTime.current.strftime("%Y-%m-%d:%H:00")}"
+    Redis.current.sadd(key, id)
+    Redis.current.expire(key, 65.minutes.seconds)
+    Prometheus::ApplicationExporter::increment(:approves)
   end
 end

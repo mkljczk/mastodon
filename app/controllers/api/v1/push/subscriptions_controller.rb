@@ -58,7 +58,7 @@ class Api::V1::Push::SubscriptionsController < Api::BaseController
   def data_params
     return {} if params[:data].blank?
 
-    params.require(:data).permit(:policy, alerts: [:follow, :follow_request, :favourite, :reblog, :mention, :poll, :status, :user_approved])
+    params.require(:data).permit(:policy, alerts: [:follow, :follow_request, :favourite, :reblog, :mention, :poll, :status, :user_approved, :verify_sms_prompt])
   end
 
   def remove_old_subscriptions_for_device!

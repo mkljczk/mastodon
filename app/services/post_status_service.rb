@@ -103,8 +103,7 @@ class PostStatusService < BaseService
 
   def postprocess_status!
     LinkCrawlWorker.perform_async(@status.id) unless @status.spoiler_text? || video_status?
-    DistributionWorker.perform_async(@status.id)
-    # ActivityPub::DistributionWorker.perform_async(@status.id)
+    post_distribution_service.call(@status)
     PollExpirationNotifyWorker.perform_at(@status.poll.expires_at, @status.poll.id) if @status.poll
   end
 
@@ -138,6 +137,10 @@ class PostStatusService < BaseService
 
   def process_hashtags_service
     ProcessHashtagsService.new
+  end
+
+  def post_distribution_service
+    PostDistributionService.new
   end
 
   def scheduled?

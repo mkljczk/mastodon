@@ -88,14 +88,8 @@ class TrendingTags
       redis.zremrangebyscore(KEY, '(0.3', '-inf')
     end
 
-    def get(limit, filtered: true)
-      tag_ids = redis.zrevrange(KEY, 0, LIMIT - 1).map(&:to_i)
-
-      tags = Tag.where(id: tag_ids)
-      tags = tags.trendable if filtered
-      tags = tags.index_by(&:id)
-
-      tag_ids.map { |tag_id| tags[tag_id] }.compact.take(limit)
+    def get(limit)
+      Tag.trendable.take(limit)
     end
 
     def trending?(tag)

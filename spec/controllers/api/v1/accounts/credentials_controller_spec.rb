@@ -28,6 +28,37 @@ describe Api::V1::Accounts::CredentialsController do
         get :show
         expect(body_as_json[:source][:approved]).to eq(user.approved)
       end
+
+      it 'includes if a user has verified their sms' do
+        get :show
+        expect(body_as_json[:source][:sms_verified]).to eq(true)
+      end
+
+      context 'when a user has an sms saved' do
+        let(:user)  { Fabricate(:user, account: Fabricate(:account, username: 'alice'), sms: '123-123-1222') }
+        it 'includes if a user has verified their sms' do
+          get :show
+          expect(body_as_json[:source][:sms_verified]).to eq(true)
+        end
+      end
+
+      context 'when a user does not have an sms saved and is not approved by sms' do
+        let(:user)  { Fabricate(:user, account: Fabricate(:account, username: 'alice'), sms: nil) }
+        # TODO: this is a HACK and must be removed
+        it 'returns true for sms verified' do
+          get :show
+          expect(body_as_json[:source][:sms_verified]).to eq(true)
+        end
+      end
+
+      context 'when a user does not have an sms saved and is ready for approval by sms' do
+        let(:user)  { Fabricate(:user, account: Fabricate(:account, username: 'alice'), sms: nil, ready_to_approve: 2) }
+        # TODO: this is a HACK and must be removed
+        it 'returns false for sms verified' do
+          get :show
+          expect(body_as_json[:source][:sms_verified]).to eq(false)
+        end
+      end
     end
 
     describe 'PATCH #update' do
@@ -52,6 +83,18 @@ describe Api::V1::Accounts::CredentialsController do
           }
         end
 
+        it 'leaves pleroma_settings_store alone if not provided' do
+          user.account.reload
+          expect(user.account.settings_store).to eq({ "scott" => "baio" })
+
+          patch :update, params: {
+            display_name: "Alice IS Dead",
+          }
+
+          user.account.reload
+          expect(user.account.settings_store).to eq({ "scott" => "baio" })
+        end
+
         it 'returns http success' do
           expect(response).to have_http_status(200)
         end
@@ -64,8 +107,10 @@ describe Api::V1::Accounts::CredentialsController do
           expect(user.account.avatar).to exist
           expect(user.account.header).to exist
           expect(user.setting_default_privacy).to eq('unlisted')
+          # TODO @features This setting is not user configurable
+          # expect(user.setting_default_sensitive).to eq(true)
           expect(user.account.settings_store).to eq({ "scott" => "baio"})
-          expect(user.account.bot?).to eq(false) 
+          expect(user.account.bot?).to eq(false)
         end
 
         it 'queues up an account update distribution' do
@@ -130,23 +175,23 @@ describe Api::V1::Accounts::CredentialsController do
     end
 
     describe 'GET #show' do
-      it 'returns http unauthorized' do
+      it 'returns http forbidden' do
         get :show
-        expect(response).to have_http_status(:unauthorized)
+        expect(response).to have_http_status(:forbidden)
       end
     end
 
     describe 'PATCH #update' do
-      it 'returns http unauthorized' do
+      it 'returns http forbidden' do
         patch :update, params: { note: 'Foo' }
-        expect(response).to have_http_status(:unauthorized)
+        expect(response).to have_http_status(:forbidden)
       end
     end
 
     describe 'GET #chat_token' do
-      it 'returns http unauthorized' do
+      it 'returns http forbidden' do
         get :chat_token
-        expect(response).to have_http_status(:unauthorized)
+        expect(response).to have_http_status(:forbidden)
       end
     end
   end

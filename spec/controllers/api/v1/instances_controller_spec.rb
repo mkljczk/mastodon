@@ -18,5 +18,11 @@ RSpec.describe Api::V1::InstancesController, type: :controller do
 
       expect(response).to have_http_status(200)
     end
+
+    it 'returns compat version string' do
+      get :show
+
+      expect(response.body).to include('compatible; TruthSocial')
+    end
   end
 end

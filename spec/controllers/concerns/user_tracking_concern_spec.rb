@@ -13,6 +13,7 @@ describe ApplicationController, type: :controller do
 
   before do
     routes.draw { get 'show' => 'anonymous#show' }
+    stub_const("UserTrackingConcern::TRACKED_CONTROLLERS", ['anonymous'])
   end
 
   describe 'when signed in' do
@@ -45,6 +46,7 @@ describe ApplicationController, type: :controller do
 
     describe 'feed regeneration' do
       before do
+        allow_any_instance_of(Redisable).to receive(:redis_timelines).and_return(Redis.current)
         alice = Fabricate(:account)
         bob   = Fabricate(:account)
 
@@ -77,7 +79,6 @@ describe ApplicationController, type: :controller do
 
       it 'regenerates feed when sign in is older than two weeks' do
         get :show
-
         expect_updated_sign_in_at(user)
         expect(Redis.current.zcard(FeedManager.instance.key(:home, user.account_id))).to eq 3
         expect(Redis.current.get("account:#{user.account_id}:regeneration")).to be_nil

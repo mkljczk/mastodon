@@ -9,7 +9,7 @@ Chewy.settings = {
   prefix: prefix,
   enabled: enabled,
   journal: false,
-  sidekiq: { queue: 'pull' },
+  sidekiq: { queue: 'chewy' },
 }
 
 # We use our own async strategy even outside the request-response

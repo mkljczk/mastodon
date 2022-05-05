@@ -2,6 +2,7 @@
 
 class PushUpdateWorker
   include Sidekiq::Worker
+  include Redisable
 
   def perform(account_id, status_id, timeline_id = nil)
     account     = Account.find(account_id)

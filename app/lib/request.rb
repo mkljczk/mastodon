@@ -101,9 +101,10 @@ class Request
   private
 
   def set_common_headers!
+    parsed_url = Addressable::URI.parse(@url)
     @headers[REQUEST_TARGET]    = "#{@verb} #{@url.path}"
     @headers['User-Agent']      = Mastodon::Version.user_agent
-    @headers['Host']            = @url.host
+    @headers['Host']            = "#{@url.host}:#{parsed_url.inferred_port}"
     @headers['Date']            = Time.now.utc.httpdate
     @headers['Accept-Encoding'] = 'gzip' if @verb != :head
   end

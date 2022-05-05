@@ -39,9 +39,8 @@ class VideoMetadataExtractor
       if (video_stream = video_streams.first)
         @video_codec = video_stream[:codec_name]
         @colorspace  = video_stream[:pix_fmt]
-        @width       = video_stream[:width]
-        @height      = video_stream[:height]
         @frame_rate  = video_stream[:avg_frame_rate] == '0/0' ? nil : Rational(video_stream[:avg_frame_rate])
+        set_width_and_height(video_stream)
       end
 
       if (audio_stream = audio_streams.first)
@@ -50,5 +49,18 @@ class VideoMetadataExtractor
     end
 
     @invalid = true if @metadata.key?(:error)
+  end
+
+  def set_width_and_height(video_stream)
+    # this accounts for rotation.
+    rotation = video_stream.dig(:side_data_list, 0, :rotation)
+
+    if rotation.present? && rotation.abs == 90
+      @width = video_stream[:height]
+      @height = video_stream[:width]
+    else
+      @width = video_stream[:width]
+      @height = video_stream[:height]
+    end
   end
 end

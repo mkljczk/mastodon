@@ -18,7 +18,6 @@ class Mobile::PushNotificationWorker
     return unless @endpoint.present? && @notification.activity.present? && @subscription.pushable?(@notification)
 
     payload = push_notification_json
-
     request_pool.with(Addressable::URI.parse(@endpoint).normalized_site) do |http_client|
       request = Request.new(:post, @endpoint, body: payload, http_client: http_client)
 

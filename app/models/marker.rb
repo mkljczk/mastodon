@@ -14,7 +14,7 @@
 #
 
 class Marker < ApplicationRecord
-  TIMELINES = %w(home notifications).freeze
+  TIMELINES = %w(home notifications notifications_mentions notifications_likes_retruths notifications_followers).freeze
 
   belongs_to :user
 

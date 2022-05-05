@@ -37,7 +37,7 @@ module Admin
 
     def approve
       authorize @account.user, :approve?
-      @account.user.approve!
+      @account.user.approve!(true)
       redirect_to admin_pending_accounts_path, notice: I18n.t('admin.accounts.approved_msg', username: @account.acct)
     end
 

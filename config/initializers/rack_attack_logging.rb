@@ -3,5 +3,6 @@ ActiveSupport::Notifications.subscribe(/rack_attack/) do |_name, _start, _finish
 
   next unless [:throttle, :blacklist].include? req.env['rack.attack.match_type']
 
-  Rails.logger.info("Rate limit hit (#{req.env['rack.attack.match_type']}): #{req.ip} #{req.request_method} #{req.fullpath}")
+  Rails.logger.info("Rate limit hit by rack-attack (#{req.env['rack.attack.match_type']} #{req.env['rack.attack.matched']}): #{req.ip} #{req.request_method} #{req.fullpath} #{req.authenticated_user_id}")
+
 end

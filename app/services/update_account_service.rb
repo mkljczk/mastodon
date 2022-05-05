@@ -8,6 +8,11 @@ class UpdateAccountService < BaseService
 
     params['settings_store'] = params['pleroma_settings_store']
     params.delete('pleroma_settings_store')
+
+    if !params['settings_store']
+      params.delete('settings_store')
+    end
+
     account.send(update_method, params).tap do |ret|
       next unless ret
 

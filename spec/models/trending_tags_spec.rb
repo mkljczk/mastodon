@@ -7,9 +7,10 @@ RSpec.describe TrendingTags do
 
   describe '.update!' do
     let!(:at_time) { Time.now.utc }
-    let!(:tag1) { Fabricate(:tag, name: 'Catstodon', trendable: true) }
-    let!(:tag2) { Fabricate(:tag, name: 'DogsOfMastodon', trendable: true) }
-    let!(:tag3) { Fabricate(:tag, name: 'OCs', trendable: true) }
+    let!(:tag1) { Fabricate(:tag, name: 'Catstodon', trendable: true, last_status_at: Time.now - 200) }
+    let!(:tag2) { Fabricate(:tag, name: 'DogsOfMastodon', trendable: true, last_status_at: Time.now - 100) }
+    let!(:tag3) { Fabricate(:tag, name: 'OCs', trendable: true, last_status_at: Time.now) }
+    let!(:tag4) { Fabricate(:tag, name: 'JUSTICE4JUSTUS', trendable: false) }
 
     before do
       allow(Redis.current).to receive(:pfcount) do |key|
@@ -36,11 +37,8 @@ RSpec.describe TrendingTags do
     end
 
     it 'calculates and re-calculates scores' do
-      expect(described_class.get(10, filtered: false)).to eq [tag1, tag3]
-    end
-
-    it 'omits hashtags below threshold' do
-      expect(described_class.get(10, filtered: false)).to_not include(tag2)
+      expect(described_class.get(10)).to eq [tag3, tag2, tag1]
+      expect(described_class.get(10)).to_not include(tag4)
     end
 
     it 'decays scores' do

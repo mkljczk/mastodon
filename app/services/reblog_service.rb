@@ -28,7 +28,7 @@ class ReblogService < BaseService
 
     reblog = account.statuses.create!(reblog: reblogged_status, text: '', visibility: visibility, rate_limit: options[:with_rate_limit])
 
-    DistributionWorker.perform_async(reblog.id)
+    PostDistributionService.new.call(reblog)
     ActivityPub::DistributionWorker.perform_async(reblog.id)
 
     create_notification(reblog)

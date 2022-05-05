@@ -12,6 +12,7 @@ RSpec.describe BatchedRemoveStatusService, type: :service do
   let(:status2) { PostStatusService.new.call(alice, text: 'Another status') }
 
   before do
+    allow_any_instance_of(Redisable).to receive(:redis_timelines).and_return(Redis.current)
     acct = Fabricate(:account, username: "ModerationAI")
     Fabricate(:user, admin: true, account: acct)
     allow(Redis.current).to receive_messages(publish: nil)
@@ -44,10 +45,6 @@ RSpec.describe BatchedRemoveStatusService, type: :service do
 
   it 'notifies streaming API of followers' do
     expect(Redis.current).to have_received(:publish).with("timeline:#{jeff.id}", any_args).at_least(:once)
-  end
-
-  it 'notifies streaming API of public timeline' do
-    expect(Redis.current).to have_received(:publish).with('timeline:public', any_args).at_least(:once)
   end
 
   it 'sends delete activity to followers' do

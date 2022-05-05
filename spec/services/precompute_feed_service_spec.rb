@@ -5,6 +5,10 @@ require 'rails_helper'
 RSpec.describe PrecomputeFeedService, type: :service do
   subject { PrecomputeFeedService.new }
 
+  before do
+    allow_any_instance_of(Redisable).to receive(:redis_timelines).and_return(Redis.current)
+  end
+
   describe 'call' do
     let(:account) { Fabricate(:account) }
     it 'fills a user timeline with statuses' do

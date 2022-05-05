@@ -128,5 +128,21 @@ describe StatusThreadingConcern do
 
       expect(a.descendants(20)).to eq [c, d, e, f]
     end
+    
+    describe '#descendants pagination' do
+      let!(:reply4) { Fabricate(:status, thread: reply3, account: alice) }
+      let!(:reply5) { Fabricate(:status, thread: reply4, account: jeff) }
+      let!(:reply6) { Fabricate(:status, thread: reply5, account: bob) }
+      let!(:reply7) { Fabricate(:status, thread: reply6, account: jeff) }
+      let!(:reply8) { Fabricate(:status, thread: reply7, account: bob) }
+
+      it 'returns paginated descendants with offset 0 and limit 2' do
+        expect(status.descendants(2, nil, 0)).to include(reply1, reply3)
+      end
+
+      it 'returns paginated descendants with offset 2 and limit 3' do
+        expect(status.descendants(3, nil, 2)).to include(reply4, reply5, reply6)
+      end
+    end
   end
 end

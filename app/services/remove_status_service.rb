@@ -4,6 +4,8 @@ class RemoveStatusService < BaseService
   include Redisable
   include Payloadable
 
+  BAILEY_PERCENTAGE = (ENV['BAILEY_PERCENTAGE'] || "0").to_i
+
   # Delete a status
   # @param   [Status] status
   # @param   [Hash] options
@@ -14,37 +16,47 @@ class RemoveStatusService < BaseService
     @payload  = Oj.dump(event: :delete, payload: status.id.to_s)
     @status   = status
     @account  = status.account
+    @immediate = options.key?(:immediate) ? options[:immediate] : false
     @options  = options
 
     @status.discard
 
     RedisLock.acquire(lock_options) do |lock|
       if lock.acquired?
-        remove_from_self if @account.local?
-        remove_from_followers
-        remove_from_lists
 
-        # There is no reason to send out Undo activities when the
-        # cause is that the original object has been removed, since
-        # original object being removed implicitly removes reblogs
-        # of it. The Delete activity of the original is forwarded
-        # separately.
-        remove_from_remote_reach if @account.local? && !@options[:original_removed]
+        if rand(1..100) <= BAILEY_PERCENTAGE
+          send_to_bailey
+        else
+          remove_from_self if @account.local?
+
+          remove_from_followers unless @account.whale?
+
+          remove_from_lists
+
+          # There is no reason to send out Undo activities when the
+          # cause is that the original object has been removed, since
+          # original object being removed implicitly removes reblogs
+          # of it. The Delete activity of the original is forwarded
+          # separately.
+          remove_from_remote_reach if @account.local? && !@options[:original_removed]
+
+          unless @status.reblog?
+            remove_reblogs
+          end
+        end
 
         # Since reblogs don't mention anyone, don't get reblogged,
         # favourited and don't contain their own media attachments
         # or hashtags, this can be skipped
         unless @status.reblog?
-          remove_from_mentions
-          remove_reblogs
-          remove_from_hashtags
-          remove_from_public
-          remove_from_media if @status.media_attachments.any?
+          # remove_from_mentions
+          # remove_reblogs #Moved to 'else block' so maastodon will still handle this if bailey does not
+          # remove_from_hashtags #Not used right now.  Can turn on later.
           remove_media
           notify_user if options[:notify_user]
         end
 
-        @status.destroy! if @options[:immediate] || !@status.reported?
+        @status.destroy! if @immediate
       else
         raise Mastodon::RaceConditionError
       end
@@ -67,6 +79,11 @@ class RemoveStatusService < BaseService
     @account.lists_for_local_distribution.select(:id, :account_id).reorder(nil).find_each do |list|
       FeedManager.instance.unpush_from_list(list, @status)
     end
+  end
+
+
+  def remove_from_whale_list
+    FeedManager.instance.remove_from_whale(@status)
   end
 
   def notify_user
@@ -107,7 +124,7 @@ class RemoveStatusService < BaseService
     # because once original status is gone, reblogs will disappear
     # without us being able to do all the fancy stuff
 
-    @status.reblogs.includes(:account).find_each do |reblog|
+    @status.reblogs.with_discarded.includes(:account).find_each do |reblog|
       RemoveStatusService.new.call(reblog, original_removed: true)
     end
   end
@@ -125,22 +142,8 @@ class RemoveStatusService < BaseService
     end
   end
 
-  def remove_from_public
-    return unless @status.public_visibility?
-
-    redis.publish('timeline:public', @payload)
-    redis.publish(@status.local? ? 'timeline:public:local' : 'timeline:public:remote', @payload)
-  end
-
-  def remove_from_media
-    return unless @status.public_visibility?
-
-    redis.publish('timeline:public:media', @payload)
-    redis.publish(@status.local? ? 'timeline:public:local:media' : 'timeline:public:remote:media', @payload)
-  end
-
   def remove_media
-    return if @options[:redraft] || (!@options[:immediate] && @status.reported?)
+    return if @options[:redraft] || !@immediate
 
     @status.media_attachments.destroy_all
   end
@@ -148,4 +151,10 @@ class RemoveStatusService < BaseService
   def lock_options
     { redis: Redis.current, key: "distribute:#{@status.id}", autorelease: 5.minutes.seconds }
   end
+
+  def send_to_bailey
+    Redis.current.lpush('elixir:distribution', @payload)
+    Rails.logger.info("bailey_debug: sending for deletion status #{@status.id}")
+  end
+
 end

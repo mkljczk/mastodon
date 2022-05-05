@@ -194,4 +194,106 @@ RSpec.describe NotifyService, type: :service do
       end
     end
   end
+
+
+  describe 'whale users' do
+    let(:user) { Fabricate(:user, account: Fabricate(:account, whale: true))}
+    let(:recipient) { user.account }   
+   
+    context 'if a whale user is followed' do
+      let(:activity) { Fabricate(:follow, account: sender, target_account: recipient) }
+      let(:type) { :follow }
+      
+      it 'does not notify immediately' do
+        group_notifications_service = double(:group_notifications_service)
+        allow(group_notifications_service).to receive(:call)
+        allow(GroupNotificationsService).to receive(:new).and_return(group_notifications_service)
+        
+        is_expected.to_not change(Notification, :count)
+      
+        expect(GroupNotificationsService).to have_received(:new)
+        expect(group_notifications_service).to have_received(:call)
+      end
+    end
+   
+    context 'if a whale\'s status is favourited' do
+      let(:status)   { Fabricate(:status, account: recipient) }
+      let(:activity) { Fabricate(:favourite, account: sender, status: status) }
+      let(:type) { :favourite }
+     
+      it 'does not notify immediately' do
+        group_notifications_service = double(:group_notifications_service)
+        allow(group_notifications_service).to receive(:call)
+        allow(GroupNotificationsService).to receive(:new).and_return(group_notifications_service)
+        
+        is_expected.to_not change(Notification, :count)
+
+        expect(GroupNotificationsService).to have_received(:new)
+        expect(group_notifications_service).to have_received(:call)
+      end
+    end
+
+    context 'if a whale\'s status is rebloged' do
+      let(:status)   { Fabricate(:status, account: recipient) }
+      let(:activity) { Fabricate(:favourite, account: sender, status: status) }
+      let(:type) { :reblog }
+     
+      it 'does not notify immediately' do
+        group_notifications_service = double(:group_notifications_service)
+        allow(group_notifications_service).to receive(:call)
+        allow(GroupNotificationsService).to receive(:new).and_return(group_notifications_service)
+        
+        is_expected.to_not change(Notification, :count)
+
+        expect(GroupNotificationsService).to have_received(:new)
+        expect(group_notifications_service).to have_received(:call)
+      end
+    end
+
+    context 'if a whale is mentioned in a status created by others' do
+      let(:reply_to) { Fabricate(:status, account: sender) }
+      let(:activity) { Fabricate(:mention, account: recipient, status: Fabricate(:status, account: sender, thread: reply_to)) }
+      let(:type)     { :mention }
+  
+      it 'does notify' do
+        is_expected.to change(Notification, :count)
+      end
+    end
+
+    context 'if a whale is mentioned in a status created by the whale' do
+      let(:reply_to) { Fabricate(:status, account: recipient) }
+      let(:activity) { Fabricate(:mention, account: recipient, status: Fabricate(:status, account: sender, thread: reply_to)) }
+      let(:type)     { :mention }
+  
+      it 'does not notify immediately' do
+        group_notifications_service = double(:group_notifications_service)
+        allow(group_notifications_service).to receive(:call)
+        allow(GroupNotificationsService).to receive(:new).and_return(group_notifications_service)
+        
+        is_expected.to_not change(Notification, :count)
+
+        expect(GroupNotificationsService).to have_received(:new)
+        expect(group_notifications_service).to have_received(:call)
+      end
+    end
+
+    context 'if a whale is mentioned at a deeper level in a status created by the whale' do
+      let(:commenter) { Fabricate(:account)}
+      let(:reply_to_1) { Fabricate(:status, account: recipient) }
+      let(:reply_to_2) { Fabricate(:status, account: commenter, thread: reply_to_1) }
+      let(:activity) { Fabricate(:mention, account: recipient, status: Fabricate(:status, account: sender, thread: reply_to_2)) }
+      let(:type)     { :mention }
+  
+      it 'does not notify immediately' do
+        group_notifications_service = double(:group_notifications_service)
+        allow(group_notifications_service).to receive(:call)
+        allow(GroupNotificationsService).to receive(:new).and_return(group_notifications_service)
+        
+        is_expected.to_not change(Notification, :count)
+
+        expect(GroupNotificationsService).to have_received(:new)
+        expect(group_notifications_service).to have_received(:call)
+      end
+    end
+  end
 end

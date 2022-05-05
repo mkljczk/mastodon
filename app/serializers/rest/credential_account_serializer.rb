@@ -15,6 +15,8 @@ class REST::CredentialAccountSerializer < REST::AccountSerializer
       note: object.note,
       fields: object.fields.map(&:to_h),
       unapproved_position: user.get_position_in_waitlist_queue,
+      sms_verified: (user.not_ready_for_approval? || user.ready_by_csv_import? || user.sms_verified?),
+      ready_by_sms_verification: (!user.not_ready_for_approval? && !user.ready_by_csv_import?),
       follow_requests_count: FollowRequest.where(target_account: object).limit(40).count,
     }
   end

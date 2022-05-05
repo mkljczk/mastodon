@@ -3,7 +3,7 @@
 class HomeFeed < Feed
   def initialize(account)
     @account = account
-    super(:home, account.id)
+    super(:home, account)
   end
 
   def regenerating?
